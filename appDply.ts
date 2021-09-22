@@ -20,7 +20,8 @@ async function handleRequest(req:Request):Promise<Response> {
     const todayViews=await getTodayViews();
     return new Response(getHtml(todayViews, diffStats), {
         headers: {
-            'content-type': 'text/html'
+            'content-type': 'text/html',
+            'cache-control': 'no-cache; no-store; max-age=0'
         }
     });
 }
@@ -66,6 +67,10 @@ function getHtml(todayViews:number=0, diffStats:Record<string, number>) {
         font-family: 'Georgia';
         font-size: 5em;
     }
+    h4 {
+        font-family: 'Georgia';
+        font-size: 2em;
+    }
     h3 {
         font-family: 'Georgia';
         font-size: 4em;
@@ -108,6 +113,7 @@ function getHtml(todayViews:number=0, diffStats:Record<string, number>) {
       }
     </style>
     <body>
+    <h4>Last updated: ${new Date().toString()}</h4>
     <h1>Followers: ${diffStats.subs}</h1>
     <h1>Today's views: ${todayViews}</h1>
     <h3>${Object.keys(diffStats).length-1} new views since last refresh</h3>
