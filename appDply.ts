@@ -4,6 +4,7 @@ const authToken=Deno.env.get('AUTH_TOKEN') || "";
 const medAuthToken=Deno.env.get('MED_AUTH_TOKEN') || "";
 const rsp401=new Response(null, {status: 401});
 const rsp200=new Response(null);
+const appStartupTS=new Date();
 let stats:Record<string, number>={};
 stats=await getStats();
 
@@ -13,7 +14,7 @@ async function handleRequest(req:Request):Promise<Response> {
     if(!token || token!==authToken)
         return rsp401;
     if(u.searchParams.get('reset'))
-        stats={};
+        stats=await getStats();
     const newStats=await getStats();
     const diffStats=calculateDiff(newStats);
     const todayViews=await getTodayViews();
@@ -43,7 +44,12 @@ async function getStats():Promise<Record<string, number>> {
             }
         });
         const resBody=await res.text();
-        const resJson=JSON.parse(resBody.split("</x>")[1]);
+        let resJson;
+        try {
+            resJson=JSON.parse(resBody.split("</x>")[1]);
+        } catch(err) {
+            return s;
+        }
         if(!resJson || !resJson.payload || !resJson.payload.value)
             return s;
         for(const i of resJson.payload.value)
@@ -115,6 +121,7 @@ function getHtml(todayViews:number=0, diffStats:Record<string, number>) {
     <h4>Last updated: ${new Date().toString()}</h4>
     <h1>Followers: ${diffStats.subs}</h1>
     <h1>Today's views: ${todayViews}</h1>
+    <h4>App started at: ${appStartupTS}</h4>
     <h3>${Object.keys(diffStats).length-1} new views since last reset</h3>
     <table class="minimalistBlack">`;
     for(const k in diffStats) {
