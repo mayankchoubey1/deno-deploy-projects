@@ -4,7 +4,8 @@ const authToken=Deno.env.get('AUTH_TOKEN') || "";
 const medAuthToken=Deno.env.get('MED_AUTH_TOKEN') || "";
 const rsp401=new Response(null, {status: 401});
 const rsp200=new Response(null);
-const stats:Record<string, number>=await getStats();
+let stats:Record<string, number>={};
+stats=await getStats();
 
 async function handleRequest(req:Request):Promise<Response> {
     const u=new URL(req.url);
@@ -62,9 +63,11 @@ function getHtml(diffStats:Record<string, number>) {
     <style>
     h1 {
         font-family: 'arial';
+        font-size: 5em;
     }
     h3 {
         font-family: 'arial';
+        font-size: 4em;
     }
     table.minimalistBlack {
         border: 3px solid #000000;
@@ -78,7 +81,7 @@ function getHtml(diffStats:Record<string, number>) {
       }
       table.minimalistBlack tbody td {
         font-family: 'arial';
-        font-size: 18px;
+        font-size: 4em;
       }
       table.minimalistBlack thead {
         background: #CFCFCF;
