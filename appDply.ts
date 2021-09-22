@@ -13,8 +13,7 @@ async function handleRequest(req:Request):Promise<Response> {
     if(!token || token!==authToken)
         return rsp401;
     if(u.searchParams.get('reset'))
-        for(const k in stats)
-            delete stats[k];
+        stats={};
     const newStats=await getStats();
     const diffStats=calculateDiff(newStats);
     const todayViews=await getTodayViews();
@@ -116,7 +115,7 @@ function getHtml(todayViews:number=0, diffStats:Record<string, number>) {
     <h4>Last updated: ${new Date().toString()}</h4>
     <h1>Followers: ${diffStats.subs}</h1>
     <h1>Today's views: ${todayViews}</h1>
-    <h3>${Object.keys(diffStats).length-1} new views since last refresh</h3>
+    <h3>${Object.keys(diffStats).length-1} new views since last reset</h3>
     <table class="minimalistBlack">`;
     for(const k in diffStats) {
         if(k!=='subs')
