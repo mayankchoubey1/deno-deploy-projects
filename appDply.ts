@@ -60,6 +60,12 @@ function getHtml(diffStats:Record<string, number>) {
     let ret=`<html>
     <head>
     <style>
+    h1 {
+        font-family: 'arial';
+    }
+    h3 {
+        font-family: 'arial';
+    }
     table.minimalistBlack {
         border: 3px solid #000000;
         width: 100%;
@@ -71,7 +77,8 @@ function getHtml(diffStats:Record<string, number>) {
         padding: 5px 4px;
       }
       table.minimalistBlack tbody td {
-        font-size: 13px;
+        font-family: 'arial';
+        font-size: 18px;
       }
       table.minimalistBlack thead {
         background: #CFCFCF;
@@ -97,12 +104,16 @@ function getHtml(diffStats:Record<string, number>) {
       }
     </style>
     <body>
+    <h1>Followers: ${diffStats.subs}</h1>
+    <h3>${Object.keys(diffStats).length-1} new views since last refresh</h3>
     <table class="minimalistBlack">`;
-    for(const k in diffStats)
-        ret+=`<tr>
-        <td>${k}</td>
-        <td>${diffStats[k]}</td>
-        </tr>`;
+    for(const k in diffStats) {
+        //if(k!=='subs')
+            ret+=`<tr>
+            <td>${k}</td>
+            <td>${diffStats[k]}</td>
+            </tr>`;
+    }
     ret+=`</table>
     </body>
     </html>`;
