@@ -142,8 +142,9 @@ function calculateDiff(newStats:Record<string, number>) {
 
 async function getTodayViews():Promise<number> {
     const d=new Date();
-    d.setHours(0, 0, 0, 0);
-    const todayMidnightTS=d.valueOf();
+    const d1=new Date(d.toLocaleString('en-US', { timeZone: 'America/Los_Angeles' }));
+    d1.setHours(0, 0, 0, 0);
+    const todayMidnightTS=d1.valueOf();
     const currTS=new Date().valueOf();
     const url="https://medium.com/@choubey/stats/total/"+todayMidnightTS+"/"+currTS;
     const res=await fetch(url, {
