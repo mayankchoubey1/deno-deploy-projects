@@ -108,7 +108,7 @@ function getHtml(diffStats:Record<string, number>) {
     <h3>${Object.keys(diffStats).length-1} new views since last refresh</h3>
     <table class="minimalistBlack">`;
     for(const k in diffStats) {
-        //if(k!=='subs')
+        if(k!=='subs')
             ret+=`<tr>
             <td>${k}</td>
             <td>${diffStats[k]}</td>
