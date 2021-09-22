@@ -71,7 +71,7 @@ function getHtml(diffStats:Record<string, number>) {
     }
     table.minimalistBlack {
         border: 3px solid #000000;
-        width: 100%;
+        width: 50%;
         text-align: left;
         border-collapse: collapse;
       }
@@ -81,7 +81,7 @@ function getHtml(diffStats:Record<string, number>) {
       }
       table.minimalistBlack tbody td {
         font-family: 'arial';
-        font-size: 4em;
+        font-size: 5em;
       }
       table.minimalistBlack thead {
         background: #CFCFCF;
@@ -111,7 +111,7 @@ function getHtml(diffStats:Record<string, number>) {
     <h3>${Object.keys(diffStats).length-1} new views since last refresh</h3>
     <table class="minimalistBlack">`;
     for(const k in diffStats) {
-        if(k!=='subs')
+        //if(k!=='subs')
             ret+=`<tr>
             <td>${k}</td>
             <td>${diffStats[k]}</td>
