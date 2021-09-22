@@ -17,7 +17,8 @@ async function handleRequest(req:Request):Promise<Response> {
             delete stats[k];
     const newStats=await getStats();
     const diffStats=calculateDiff(newStats);
-    return new Response(getHtml(diffStats), {
+    const todayViews=await getTodayViews();
+    return new Response(getHtml(todayViews, diffStats), {
         headers: {
             'content-type': 'text/html'
         }
@@ -57,16 +58,16 @@ async function getStats():Promise<Record<string, number>> {
     return s;
 }
 
-function getHtml(diffStats:Record<string, number>) {
+function getHtml(todayViews:number=0, diffStats:Record<string, number>) {
     let ret=`<html>
     <head>
     <style>
     h1 {
-        font-family: 'arial';
+        font-family: 'Georgia';
         font-size: 5em;
     }
     h3 {
-        font-family: 'arial';
+        font-family: 'Georgia';
         font-size: 4em;
     }
     table.minimalistBlack {
@@ -80,8 +81,8 @@ function getHtml(diffStats:Record<string, number>) {
         padding: 5px 4px;
       }
       table.minimalistBlack tbody td {
-        font-family: 'arial';
-        font-size: 5em;
+        font-family: 'Georgia';
+        font-size: 4em;
       }
       table.minimalistBlack thead {
         background: #CFCFCF;
@@ -108,6 +109,7 @@ function getHtml(diffStats:Record<string, number>) {
     </style>
     <body>
     <h1>Followers: ${diffStats.subs}</h1>
+    <h1>Today's views: ${todayViews}</h1>
     <h3>${Object.keys(diffStats).length-1} new views since last refresh</h3>
     <table class="minimalistBlack">`;
     for(const k in diffStats) {
@@ -136,4 +138,27 @@ function calculateDiff(newStats:Record<string, number>) {
 
     sortedDiffStats['subs']=newStats['subs'];
     return sortedDiffStats;
+}
+
+async function getTodayViews():Promise<number> {
+    const d=new Date();
+    d.setHours(0, 0, 0, 0);
+    const todayMidnightTS=d.valueOf();
+    const currTS=new Date().valueOf();
+    const url="https://medium.com/@choubey/stats/total/"+todayMidnightTS+"/"+currTS;
+    const res=await fetch(url, {
+        headers: {
+            'Accept': 'application/json',
+            'Cookie': medAuthToken
+        }
+    });
+    const resBody=await res.text();
+    const resJson=JSON.parse(resBody.split("</x>")[1]);
+    if(!resJson || !resJson.payload || !resJson.payload.value)
+        return 0;
+    let views=0;
+    for(const v of resJson.payload.value) {
+        views+=v.views;
+    }
+    return views;
 }
