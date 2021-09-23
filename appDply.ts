@@ -122,8 +122,8 @@ function getHtml(todayViews:number=0, diffStats:Record<string, number>) {
       }
     </style>
     <body>
-    <h4>Last updated: ${new Date().toString()}</h4>
-    <h4>App started at: ${appStartupTS}</h4>
+    <h4>Last updated: ${getLocalTime(new Date())}</h4>
+    <h4>App started at: ${getLocalTime(appStartupTS)}</h4>
     <h1>Followers: ${subs}</h1>
     <h1>Today's views: ${todayViews}</h1>
     <h3>${newViews} new views since last reset</h3>
@@ -154,10 +154,14 @@ function calculateDiff(newStats:Record<string, number>) {
     return sortedDiffStats;
 }
 
+function getLocalTime(d:Date) {
+    return d.toLocaleString('en-US', { timeZone: 'America/Los_Angeles' });
+}
+
 async function getTodayViews():Promise<number> {
     const d=new Date();
-    const d1=new Date(d.toLocaleString('en-US', { timeZone: 'America/Los_Angeles' }));
-    const d2=new Date(d.toLocaleString('en-US', { timeZone: 'America/Los_Angeles' }));
+    const d1=new Date(getLocalTime(d));
+    const d2=new Date(getLocalTime(d));
     d1.setHours(0, 0, 0, 0);
     const todayMidnightTS=d1.valueOf();
     const currTS=d2.valueOf();
