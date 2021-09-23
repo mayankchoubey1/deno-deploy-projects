@@ -65,6 +65,10 @@ async function getStats():Promise<Record<string, number>> {
 }
 
 function getHtml(todayViews:number=0, diffStats:Record<string, number>) {
+    let newViews=0, subs=diffStats['subs'];
+    delete diffStats['subs'];
+    for(const k in diffStats)
+        newViews+=diffStats[k];
     let ret=`<html>
     <head>
     <style>
@@ -119,18 +123,16 @@ function getHtml(todayViews:number=0, diffStats:Record<string, number>) {
     </style>
     <body>
     <h4>Last updated: ${new Date().toString()}</h4>
-    <h1>Followers: ${diffStats.subs}</h1>
-    <h1>Today's views: ${todayViews}</h1>
     <h4>App started at: ${appStartupTS}</h4>
-    <h3>${Object.keys(diffStats).length-1} new views since last reset</h3>
+    <h1>Followers: ${subs}</h1>
+    <h1>Today's views: ${todayViews}</h1>
+    <h3>${newViews} new views since last reset</h3>
     <table class="minimalistBlack">`;
-    for(const k in diffStats) {
-        if(k!=='subs')
-            ret+=`<tr>
-            <td>${k}</td>
-            <td>${diffStats[k]}</td>
-            </tr>`;
-    }
+    for(const k in diffStats)
+        ret+=`<tr>
+        <td>${k}</td>
+        <td>${diffStats[k]}</td>
+        </tr>`;
     ret+=`</table>
     </body>
     </html>`;
@@ -171,8 +173,7 @@ async function getTodayViews():Promise<number> {
     if(!resJson || !resJson.payload || !resJson.payload.value)
         return 0;
     let views=0;
-    for(const v of resJson.payload.value) {
+    for(const v of resJson.payload.value)
         views+=v.views;
-    }
     return views;
 }
