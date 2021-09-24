@@ -5,6 +5,7 @@ const medAuthToken=Deno.env.get('MED_AUTH_TOKEN') || "";
 const rsp401=new Response(null, {status: 401});
 const rsp200=new Response(null);
 const appStartupTS=new Date();
+const fontFamily='Quicksand';
 let stats:Record<string, number>={};
 stats=await getStats();
 
@@ -13,11 +14,12 @@ async function handleRequest(req:Request):Promise<Response> {
     const token=u.searchParams.get('token');
     if(!token || token!==authToken)
         return rsp401;
+    if(u.searchParams.has('getViews'))
+        return new Response(await getTodayViews(u.searchParams.get('prevTS'), u.searchParams.get('currTS')));
     const newStats=await getStats();
     const diffStats=calculateDiff(newStats);
-    const todayViews=await getTodayViews();
     stats=await getStats();
-    return new Response(getHtml(todayViews, diffStats), {
+    return new Response(getHtml(diffStats), {
         headers: {
             'content-type': 'text/html',
             'cache-control': 'no-cache; no-store; max-age=0'
@@ -64,42 +66,7 @@ async function getStats():Promise<Record<string, number>> {
     return s;
 }
 
-function getHtml(todayViews:number=0, diffStats:Record<string, number>) {
-    let newViews=0, subs=diffStats['subs'];
-    delete diffStats['subs'];
-    for(const k in diffStats)
-        newViews+=diffStats[k];
-    let ret=`<html>
-    <head>
-    <style>
-    ${getCSS()}
-    </style>
-    <body>
-    <p>Last updated: ${getLocalTime(new Date())}</p>
-    <p>App started at: ${getLocalTime(appStartupTS)}</p>
-    <h1>Followers: ${subs}</h1>
-    <h1>Today's views: ${todayViews}</h1>
-    <h3>${newViews} new views since last refresh</h3>
-    <table class="minimalistBlack">`;
-    for(const k in diffStats)
-        ret+=`<tr>
-        <td>${k}</td>
-        <td>${diffStats[k]}</td>
-        </tr>`;
-    ret+=`</table>
-    <h3>All articles</h3>
-    <table class="minimalistBlack">`;
-    for(const s in sortData(stats))
-        ret+=`<tr>
-        <td>${s}</td>
-        <td>${stats[s]}</td
-        </tr>`;
-    ret+=`
-    </table>
-    </body>
-    </html>`;
-    return ret;
-}
+
 
 function sortData(data:Record<string, number>) {
     return Object.entries(data)
@@ -123,21 +90,10 @@ function getLocalTime(d:Date) {
     return d.toLocaleString('en-US', { timeZone: 'America/Los_Angeles' });
 }
 
-async function getTodayViews():Promise<number> {
-    //const d=new Date();
-    //const d1=new Date(getLocalTime(d));
-    //const d2=new Date(getLocalTime(d));
-    //d1.setHours(0, 0, 0, 0);
-    //const todayMidnightTS=d1.valueOf();
-    //const currTS=d2.valueOf();
-    const d=new Date();
-    d.setUTCHours(0, 0, 0, 0);
-    const d1=new Date(getLocalTime(d));
-    const todayMidnightTS=d1.valueOf();
-    d.setUTCHours(24, 0, 0, 0);
-    const d2=new Date(getLocalTime(d));
-    const currTS=d2.valueOf();
-    const url="https://medium.com/@choubey/stats/total/"+todayMidnightTS+"/"+currTS;
+async function getTodayViews(prevTS:string|null, currTS: string|null):Promise<string> {
+    if(!(prevTS && currTS))
+        return '0';
+    const url="https://medium.com/@choubey/stats/total/"+prevTS+"/"+currTS;
     const res=await fetch(url, {
         headers: {
             'Accept': 'application/json',
@@ -147,31 +103,95 @@ async function getTodayViews():Promise<number> {
     const resBody=await res.text();
     const resJson=JSON.parse(resBody.split("</x>")[1]);
     if(!resJson || !resJson.payload || !resJson.payload.value)
-        return 0;
+        return '0';
     let views=0;
     for(const v of resJson.payload.value)
         views+=v.views;
-    console.log(url);
-    return views;
+    return views.toString();
+}
+
+function getScriptToFetchViews() {
+    return `
+    const d=new Date();
+    d.setHours(0, 0, 0, 0);
+    const prevTS=d.valueOf();
+    fetch(window.location+'&prevTS='+prevTS+'&currTS='+Date.now()+'&getViews').then(d=>{
+        d.text().then(v=>{
+            document.getElementById('lviews').innerHTML=v
+        });
+    });`;
+}
+
+function getHtml(diffStats:Record<string, number>) {
+    let newViews=0, subs=diffStats['subs'];
+    delete diffStats['subs'];
+    for(const k in diffStats)
+        newViews+=diffStats[k];
+    let ret=`<html>
+    <head>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=${fontFamily}">
+    <style>
+    ${getCSS()}
+    </style>
+    <script>
+    ${getScriptToFetchViews()}
+    </script>
+    <body>
+    <p>Last updated: ${getLocalTime(new Date())}</p>
+    <p>App started at: ${getLocalTime(appStartupTS)}</p>
+    <p class='followers'>Followers: ${subs}</p>
+    <p class="views">Today's views: <label id="lviews">0</label></p>
+    <p class='newViews'>${newViews} new views since last refresh</p>
+    <table class="minimalistBlack">`;
+    for(const k in diffStats)
+        ret+=`<tr>
+        <td>${k}</td>
+        <td>${diffStats[k]}</td>
+        </tr>`;
+    ret+=`</table>
+    <p class="allArticles">All articles</p>
+    <table class="minimalistBlack">`;
+    for(const s in sortData(stats))
+        ret+=`<tr>
+        <td>${s}</td>
+        <td>${stats[s]}</td
+        </tr>`;
+    ret+=`
+    </table>
+    </body>
+    </html>`;
+    return ret;
 }
 
 function getCSS():string {
     return `    
-    h1 {
-        font-family: 'Georgia';
-        font-size: 5em;
+    .followers {
+        font-family: ${fontFamily};
+        font-size: 4em;
     }
     h3 {
-        font-family: 'Georgia';
+        font-family: ${fontFamily};
         font-size: 4em;
     }
     h4 {
-        font-family: 'Georgia';
+        font-family: ${fontFamily};
         font-size: 2em;
     }
     p {
-        font-family: 'Georgia';
+        font-family: ${fontFamily};
         font-size: 1.5em;
+    }
+    .views{
+        font-family: ${fontFamily};
+        font-size: 4em;
+    }
+    .newViews{
+        font-family: ${fontFamily};
+        font-size: 4em;
+    }
+    .allArticles{
+        font-family: ${fontFamily};
+        font-size: 4em;
     }
     table.minimalistBlack {
         border: 3px solid #000000;
@@ -184,7 +204,7 @@ function getCSS():string {
         padding: 5px 4px;
     }
     table.minimalistBlack tbody td {
-        font-family: 'Georgia';
+        font-family: ${fontFamily};
         font-size: 4em;
     }
     table.minimalistBlack thead {
