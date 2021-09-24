@@ -13,17 +13,17 @@ async function handleRequest(req:Request):Promise<Response> {
     const token=u.searchParams.get('token');
     if(!token || token!==authToken)
         return rsp401;
-    if(u.searchParams.get('reset'))
-        stats=await getStats();
     const newStats=await getStats();
     const diffStats=calculateDiff(newStats);
     const todayViews=await getTodayViews();
+    stats=await getStats();
     return new Response(getHtml(todayViews, diffStats), {
         headers: {
             'content-type': 'text/html',
             'cache-control': 'no-cache; no-store; max-age=0'
         }
     });
+
 }
 
 async function getStats():Promise<Record<string, number>> {
@@ -72,61 +72,14 @@ function getHtml(todayViews:number=0, diffStats:Record<string, number>) {
     let ret=`<html>
     <head>
     <style>
-    h1 {
-        font-family: 'Georgia';
-        font-size: 5em;
-    }
-    h4 {
-        font-family: 'Georgia';
-        font-size: 2em;
-    }
-    h3 {
-        font-family: 'Georgia';
-        font-size: 4em;
-    }
-    table.minimalistBlack {
-        border: 3px solid #000000;
-        width: 50%;
-        text-align: left;
-        border-collapse: collapse;
-      }
-      table.minimalistBlack td, table.minimalistBlack th {
-        border: 1px solid #000000;
-        padding: 5px 4px;
-      }
-      table.minimalistBlack tbody td {
-        font-family: 'Georgia';
-        font-size: 4em;
-      }
-      table.minimalistBlack thead {
-        background: #CFCFCF;
-        background: -moz-linear-gradient(top, #dbdbdb 0%, #d3d3d3 66%, #CFCFCF 100%);
-        background: -webkit-linear-gradient(top, #dbdbdb 0%, #d3d3d3 66%, #CFCFCF 100%);
-        background: linear-gradient(to bottom, #dbdbdb 0%, #d3d3d3 66%, #CFCFCF 100%);
-        border-bottom: 3px solid #000000;
-      }
-      table.minimalistBlack thead th {
-        font-size: 15px;
-        font-weight: bold;
-        color: #000000;
-        text-align: left;
-      }
-      table.minimalistBlack tfoot {
-        font-size: 14px;
-        font-weight: bold;
-        color: #000000;
-        border-top: 3px solid #000000;
-      }
-      table.minimalistBlack tfoot td {
-        font-size: 14px;
-      }
+    ${getCSS()}
     </style>
     <body>
-    <h4>Last updated: ${getLocalTime(new Date())}</h4>
-    <h4>App started at: ${getLocalTime(appStartupTS)}</h4>
+    <p>Last updated: ${getLocalTime(new Date())}</p>
+    <p>App started at: ${getLocalTime(appStartupTS)}</p>
     <h1>Followers: ${subs}</h1>
     <h1>Today's views: ${todayViews}</h1>
-    <h3>${newViews} new views since last reset</h3>
+    <h3>${newViews} new views since last refresh</h3>
     <table class="minimalistBlack">`;
     for(const k in diffStats)
         ret+=`<tr>
@@ -134,6 +87,15 @@ function getHtml(todayViews:number=0, diffStats:Record<string, number>) {
         <td>${diffStats[k]}</td>
         </tr>`;
     ret+=`</table>
+    <h3>All articles</h3>
+    <table class="minimalistBlack">`;
+    for(const s in stats)
+        ret+=`<tr>
+        <td>${s}</td>
+        <td>${stats[s]}</td
+        </tr>`;
+    ret+=`
+    </table>
     </body>
     </html>`;
     return ret;
@@ -179,5 +141,63 @@ async function getTodayViews():Promise<number> {
     let views=0;
     for(const v of resJson.payload.value)
         views+=v.views;
+    console.log(url);
     return views;
+}
+
+function getCSS():string {
+    return `    
+    h1 {
+        font-family: 'Georgia';
+        font-size: 5em;
+    }
+    h3 {
+        font-family: 'Georgia';
+        font-size: 4em;
+    }
+    h4 {
+        font-family: 'Georgia';
+        font-size: 2em;
+    }
+    p {
+        font-family: 'Georgia';
+        font-size: 1.5em;
+    }
+    table.minimalistBlack {
+        border: 3px solid #000000;
+        width: 50%;
+        text-align: left;
+        border-collapse: collapse;
+    }
+    table.minimalistBlack td, table.minimalistBlack th {
+        border: 1px solid #000000;
+        padding: 5px 4px;
+    }
+    table.minimalistBlack tbody td {
+        font-family: 'Georgia';
+        font-size: 4em;
+    }
+    table.minimalistBlack thead {
+        background: #CFCFCF;
+        background: -moz-linear-gradient(top, #dbdbdb 0%, #d3d3d3 66%, #CFCFCF 100%);
+        background: -webkit-linear-gradient(top, #dbdbdb 0%, #d3d3d3 66%, #CFCFCF 100%);
+        background: linear-gradient(to bottom, #dbdbdb 0%, #d3d3d3 66%, #CFCFCF 100%);
+        border-bottom: 3px solid #000000;
+    }
+    table.minimalistBlack thead th {
+        font-size: 15px;
+        font-weight: bold;
+        color: #000000;
+        text-align: left;
+    }
+    table.minimalistBlack tfoot {
+        font-size: 14px;
+        font-weight: bold;
+        color: #000000;
+        border-top: 3px solid #000000;
+    }
+    table.minimalistBlack tfoot td {
+        font-size: 14px;
+    }
+    `;
 }
