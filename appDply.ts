@@ -89,7 +89,7 @@ function getHtml(todayViews:number=0, diffStats:Record<string, number>) {
     ret+=`</table>
     <h3>All articles</h3>
     <table class="minimalistBlack">`;
-    for(const s in stats)
+    for(const s in sortData(stats))
         ret+=`<tr>
         <td>${s}</td>
         <td>${stats[s]}</td
@@ -101,6 +101,12 @@ function getHtml(todayViews:number=0, diffStats:Record<string, number>) {
     return ret;
 }
 
+function sortData(data:Record<string, number>) {
+    return Object.entries(data)
+        .sort(([,a],[,b]) => b-a)
+        .reduce((r, [k, v]) => ({ ...r, [k]: v }), {});
+}
+
 function calculateDiff(newStats:Record<string, number>) {
     const diffStats:Record<string, number>={};
     for(const s in newStats) {
@@ -108,10 +114,7 @@ function calculateDiff(newStats:Record<string, number>) {
         if(diff>0)
             diffStats[s]=diff;
     }
-    const sortedDiffStats:Record<string, number> = Object.entries(diffStats)
-    .sort(([,a],[,b]) => a-b)
-    .reduce((r, [k, v]) => ({ ...r, [k]: v }), {});
-
+    const sortedDiffStats:Record<string, number> = sortData(diffStats);
     sortedDiffStats['subs']=newStats['subs'];
     return sortedDiffStats;
 }
@@ -121,11 +124,18 @@ function getLocalTime(d:Date) {
 }
 
 async function getTodayViews():Promise<number> {
+    //const d=new Date();
+    //const d1=new Date(getLocalTime(d));
+    //const d2=new Date(getLocalTime(d));
+    //d1.setHours(0, 0, 0, 0);
+    //const todayMidnightTS=d1.valueOf();
+    //const currTS=d2.valueOf();
     const d=new Date();
+    d.setHours(0, 0, 0, 0);
     const d1=new Date(getLocalTime(d));
-    const d2=new Date(getLocalTime(d));
-    d1.setHours(0, 0, 0, 0);
     const todayMidnightTS=d1.valueOf();
+    d.setHours(24, 0, 0, 0);
+    const d2=new Date(getLocalTime(d));
     const currTS=d2.valueOf();
     const url="https://medium.com/@choubey/stats/total/"+todayMidnightTS+"/"+currTS;
     const res=await fetch(url, {
