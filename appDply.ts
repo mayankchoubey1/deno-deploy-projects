@@ -131,10 +131,10 @@ async function getTodayViews():Promise<number> {
     //const todayMidnightTS=d1.valueOf();
     //const currTS=d2.valueOf();
     const d=new Date();
-    d.setHours(0, 0, 0, 0);
+    d.setUTCHours(0, 0, 0, 0);
     const d1=new Date(getLocalTime(d));
     const todayMidnightTS=d1.valueOf();
-    d.setHours(24, 0, 0, 0);
+    d.setUTCHours(24, 0, 0, 0);
     const d2=new Date(getLocalTime(d));
     const currTS=d2.valueOf();
     const url="https://medium.com/@choubey/stats/total/"+todayMidnightTS+"/"+currTS;
