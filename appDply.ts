@@ -150,6 +150,7 @@ function getHtml(diffStats:Record<string, number>) {
         </tr>`;
     ret+=`</table>
     <p class="allArticles">All articles</p>
+    <p>Total articles: ${Object.keys(stats).length}</p>
     <table class="minimalistBlack">`;
     for(const s in sortData(stats))
         ret+=`<tr>
