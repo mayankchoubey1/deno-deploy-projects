@@ -169,14 +169,6 @@ function getCSS():string {
         font-family: ${fontFamily};
         font-size: 4em;
     }
-    h3 {
-        font-family: ${fontFamily};
-        font-size: 4em;
-    }
-    h4 {
-        font-family: ${fontFamily};
-        font-size: 2em;
-    }
     p {
         font-family: ${fontFamily};
         font-size: 1.5em;
@@ -191,6 +183,7 @@ function getCSS():string {
     }
     .allArticles{
         font-family: ${fontFamily};
+        font-weight: bold;
         font-size: 4em;
     }
     table.minimalistBlack {
