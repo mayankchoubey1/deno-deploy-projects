@@ -6,6 +6,7 @@ const rsp401=new Response(null, {status: 401});
 const rsp200=new Response(null);
 const appStartupTS=new Date();
 const fontFamily='Quicksand';
+let followers:number=0;
 let stats:Record<string, number>={};
 stats=await getStats();
 
@@ -57,7 +58,7 @@ async function getStats():Promise<Record<string, number>> {
         for(const i of resJson.payload.value)
             s[i.title]=i.views;
         for(const k in resJson.payload.references.Collection)
-            s['subs']=resJson.payload.references.Collection[k].metadata.followerCount;
+            followers=resJson.payload.references.Collection[k].metadata.followerCount;
         if(resJson.payload.paging.next)
             to=resJson.payload.paging.next.to;
         else
@@ -82,7 +83,6 @@ function calculateDiff(newStats:Record<string, number>) {
             diffStats[s]=diff;
     }
     const sortedDiffStats:Record<string, number> = sortData(diffStats);
-    sortedDiffStats['subs']=newStats['subs'];
     return sortedDiffStats;
 }
 
@@ -123,8 +123,7 @@ function getScriptToFetchViews() {
 }
 
 function getHtml(diffStats:Record<string, number>) {
-    let newViews=0, subs=diffStats['subs'];
-    delete diffStats['subs'];
+    let newViews=0;
     for(const k in diffStats)
         newViews+=diffStats[k];
     let ret=`<html>
@@ -139,7 +138,7 @@ function getHtml(diffStats:Record<string, number>) {
     <body>
     <p>Last updated: ${getLocalTime(new Date())}</p>
     <p>App started at: ${getLocalTime(appStartupTS)}</p>
-    <p class='followers'>Followers: ${subs}</p>
+    <p class='followers'>Followers: ${followers}</p>
     <p class="views">Today's views: <label id="lviews">0</label></p>
     <p class='newViews'>${newViews} new views since last refresh</p>
     <table class="minimalistBlack">`;
