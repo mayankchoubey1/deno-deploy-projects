@@ -122,6 +122,28 @@ function getScriptToFetchViews() {
     });`;
 }
 
+function getTable(d:Record<string, number>, n:number=-1) {
+    let ret='<table class="minimalistBlack">', count=0;
+    for(const k in d) {
+        count++;
+        if(n>0 && count>n)
+            break;
+        ret+=`<tr>
+        <td>${k}</td>
+        <td>${d[k]}</td>
+        </tr>`;
+    }
+    ret+='</table>';
+    return ret;
+}
+
+function getTotalViews() {
+    let views=0;
+    for(const k in stats)
+        views+=stats[k];
+    return views;
+}
+
 function getHtml(diffStats:Record<string, number>) {
     let newViews=0;
     for(const k in diffStats)
@@ -141,23 +163,12 @@ function getHtml(diffStats:Record<string, number>) {
     <p class='followers'>Followers: ${followers}</p>
     <p class="views">Today's views: <label id="lviews">0</label></p>
     <p class='newViews'>${newViews} new views since last refresh</p>
-    <table class="minimalistBlack">`;
-    for(const k in diffStats)
-        ret+=`<tr>
-        <td>${k}</td>
-        <td>${diffStats[k]}</td>
-        </tr>`;
-    ret+=`</table>
+    ${getTable(diffStats)}
+    <p class="allArticles">Stats of last 10 articles</p>
+    ${getTable(stats, 10)}
     <p class="allArticles">All articles</p>
-    <p>Total articles: ${Object.keys(stats).length}</p>
-    <table class="minimalistBlack">`;
-    for(const s in sortData(stats))
-        ret+=`<tr>
-        <td>${s}</td>
-        <td>${stats[s]}</td
-        </tr>`;
-    ret+=`
-    </table>
+    <p>Total articles: ${Object.keys(stats).length}, Total views: ${getTotalViews()}</p>
+    ${getTable(sortData(stats))}
     </body>
     </html>`;
     return ret;
@@ -179,6 +190,7 @@ function getCSS():string {
     }
     .newViews{
         font-family: ${fontFamily};
+        font-weight: bold;
         font-size: 4em;
     }
     .allArticles{
@@ -198,7 +210,7 @@ function getCSS():string {
     }
     table.minimalistBlack tbody td {
         font-family: ${fontFamily};
-        font-size: 4em;
+        font-size: 3em;
     }
     table.minimalistBlack thead {
         background: #CFCFCF;
