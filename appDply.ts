@@ -60,7 +60,6 @@ async function getStats():Promise<Record<string, number>> {
         }
         if(!resJson || !resJson.payload || !resJson.payload.value)
             return s;
-        console.log(resJson.payload.value);
         for(const i of resJson.payload.value)
             s[i.title]=i.views;
         for(const k in resJson.payload.references.Collection)
@@ -177,7 +176,7 @@ function getHtml(diffStats:Record<string, number>) {
     ${getScriptToResetStats()}
     </script>
     <body>
-    <button id="resetBtn" onclick="resetStats()">RESET STATS</button>
+    <button id="resetBtn" class="bigNumber" onclick="resetStats()">RESET STATS</button>
     <p>Last updated: ${getLocalTime(new Date())}</p>
     <p>App started at: ${getLocalTime(appStartupTS)}</p>
     <p>Stats reset at: ${getLocalTime(statsResetTS)}</p>
