@@ -8,6 +8,7 @@ const appStartupTS=new Date();
 const fontFamily='Quicksand';
 let followers:number=0;
 let stats:Record<string, number>={};
+let statsResetTS=new Date();
 stats=await getStats();
 
 async function handleRequest(req:Request):Promise<Response> {
@@ -15,11 +16,15 @@ async function handleRequest(req:Request):Promise<Response> {
     const token=u.searchParams.get('token');
     if(!token || token!==authToken)
         return rsp401;
+    if(u.searchParams.has('reset')) {
+        stats=await getStats();
+        statsResetTS=new Date();
+        return new Response('');
+    }
     if(u.searchParams.has('getViews'))
         return new Response(await getTodayViews(u.searchParams.get('prevTS'), u.searchParams.get('currTS')));
     const newStats=await getStats();
     const diffStats=calculateDiff(newStats);
-    stats=await getStats();
     return new Response(getHtml(diffStats), {
         headers: {
             'content-type': 'text/html',
@@ -55,6 +60,7 @@ async function getStats():Promise<Record<string, number>> {
         }
         if(!resJson || !resJson.payload || !resJson.payload.value)
             return s;
+        console.log(resJson.payload.value);
         for(const i of resJson.payload.value)
             s[i.title]=i.views;
         for(const k in resJson.payload.references.Collection)
@@ -122,6 +128,16 @@ function getScriptToFetchViews() {
     });`;
 }
 
+function getScriptToResetStats() {
+    return `
+    function resetStats() {
+        fetch(window.location+'&reset').then(d=>{
+            window.location.reload();
+        });
+    }
+    `;
+}
+
 function getTable(d:Record<string, number>, n:number=-1) {
     let ret='<table class="minimalistBlack">', count=0;
     for(const k in d) {
@@ -157,12 +173,17 @@ function getHtml(diffStats:Record<string, number>) {
     <script>
     ${getScriptToFetchViews()}
     </script>
+    <script>
+    ${getScriptToResetStats()}
+    </script>
     <body>
+    <button id="resetBtn" onclick="resetStats()">RESET STATS</button>
     <p>Last updated: ${getLocalTime(new Date())}</p>
     <p>App started at: ${getLocalTime(appStartupTS)}</p>
-    <p class='followers'>Followers: ${followers}</p>
-    <p class="views">Today's views: <label id="lviews">0</label></p>
-    <p class='newViews'>${newViews} new views since last refresh</p>
+    <p>Stats reset at: ${getLocalTime(statsResetTS)}</p>
+    <p class='followers'>Followers:<label class="bigNumber">${followers}</label></p>
+    <p class="views">Today's views: <label id="lviews" class="bigNumber">0</label></p>
+    <p class='newViews'>${newViews} new views</p>
     ${getTable(diffStats)}
     <p class="allArticles">Stats of last 10 articles</p>
     ${getTable(stats, 10)}
@@ -197,6 +218,11 @@ function getCSS():string {
         font-family: ${fontFamily};
         font-weight: bold;
         font-size: 4em;
+    }
+    .bigNumber{
+        font-family: ${fontFamily};
+        font-weight: bold;
+        font-size: 1.5em;
     }
     table.minimalistBlack {
         border: 3px solid #000000;
