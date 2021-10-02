@@ -6,7 +6,7 @@ const rsp401=new Response(null, {status: 401});
 const rsp200=new Response(null);
 const appStartupTS=new Date();
 const fontFamily='Quicksand';
-let followers:number=0;
+let followers:number=0, unreadNotifications:number=0;
 let stats:Record<string, number>={};
 let statsResetTS=new Date();
 stats=await getStats();
@@ -69,6 +69,7 @@ async function getStats():Promise<Record<string, number>> {
         else
             break;
     }
+    unreadNotifications=await getUnreadNotifications();
     return s;
 }
 
@@ -113,6 +114,21 @@ async function getTodayViews(prevTS:string|null, currTS: string|null):Promise<st
     for(const v of resJson.payload.value)
         views+=v.views;
     return views.toString();
+}
+
+async function getUnreadNotifications():Promise<number> {
+    const url="https://medium.com/_/api/activity-status";
+    const res=await fetch(url, {
+        headers: {
+            'Accept': 'application/json',
+            'Cookie': medAuthToken
+        }
+    });
+    const resBody=await res.text();
+    const resJson=JSON.parse(resBody.split("</x>")[1]);
+    if(!resJson || !resJson.payload || !resJson.payload)
+        return 0;
+    return resJson.payload.unreadActivityCount;
 }
 
 function getScriptToFetchViews() {
@@ -182,6 +198,7 @@ function getHtml(diffStats:Record<string, number>) {
     <p>Stats reset at: ${getLocalTime(statsResetTS)}</p>
     <p class='followers'>Followers:<label class="bigNumber">${followers}</label></p>
     <p class="views">Today's views: <label id="lviews" class="bigNumber">0</label></p>
+    <p class='views'>Unread notifcations:<label class="bigNumber">${unreadNotifications}</label></p>
     <p class='newViews'>${newViews} new views</p>
     ${getTable(diffStats)}
     <p class="allArticles">Stats of last 10 articles</p>
