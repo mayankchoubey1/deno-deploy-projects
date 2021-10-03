@@ -8,7 +8,6 @@ const appStartupTS=new Date();
 const fontFamily='Quicksand';
 let followers:number=0, unreadNotifications:number=0;
 let stats:Record<string, number>={};
-let statsResetTS=new Date();
 stats=await getStats();
 
 async function handleRequest(req:Request):Promise<Response> {
@@ -18,13 +17,13 @@ async function handleRequest(req:Request):Promise<Response> {
         return rsp401;
     if(u.searchParams.has('reset')) {
         stats=await getStats();
-        statsResetTS=new Date();
         return new Response('');
     }
     if(u.searchParams.has('getViews'))
         return new Response(await getTodayViews(u.searchParams.get('prevTS'), u.searchParams.get('currTS')));
     const newStats=await getStats();
     const diffStats=calculateDiff(newStats);
+    stats=newStats;
     return new Response(getHtml(diffStats), {
         headers: {
             'content-type': 'text/html',
@@ -192,13 +191,11 @@ function getHtml(diffStats:Record<string, number>) {
     ${getScriptToResetStats()}
     </script>
     <body>
-    <button id="resetBtn" class="bigNumber" onclick="resetStats()">RESET STATS</button>
     <p>Last updated: ${getLocalTime(new Date())}</p>
     <p>App started at: ${getLocalTime(appStartupTS)}</p>
-    <p>Stats reset at: ${getLocalTime(statsResetTS)}</p>
-    <p class='followers'>Followers:<label class="bigNumber">${followers}</label></p>
+    <p class='followers'>Followers: <label class="bigNumber">${followers}</label></p>
     <p class="views">Today's views: <label id="lviews" class="bigNumber">0</label></p>
-    <p class='views'>Unread notifcations:<label class="bigNumber">${unreadNotifications}</label></p>
+    <p class='views'>Unread notifcations: <label class="bigNumber">${unreadNotifications}</label></p>
     <p class='newViews'>${newViews} new views</p>
     ${getTable(diffStats)}
     <p class="allArticles">Stats of last 10 articles</p>
@@ -238,7 +235,7 @@ function getCSS():string {
     .bigNumber{
         font-family: ${fontFamily};
         font-weight: bold;
-        font-size: 1.5em;
+        font-size: 1.25em;
     }
     table.minimalistBlack {
         border: 3px solid #000000;
