@@ -7,7 +7,7 @@ const rsp200=new Response(null);
 const appStartupTS=new Date();
 const fontFamily='Quicksand';
 let followers:number=0, unreadNotifications:number=0;
-let stats:Record<string, number>={};
+let stats:Record<string, any>={};
 stats=await getStats();
 
 async function handleRequest(req:Request):Promise<Response> {
@@ -15,16 +15,12 @@ async function handleRequest(req:Request):Promise<Response> {
     const token=u.searchParams.get('token');
     if(!token || token!==authToken)
         return rsp401;
-    if(u.searchParams.has('reset')) {
-        stats=await getStats();
-        return new Response('');
-    }
     if(u.searchParams.has('getViews'))
         return new Response(await getTodayViews(u.searchParams.get('prevTS'), u.searchParams.get('currTS')));
     const newStats=await getStats();
-    const diffStats=calculateDiff(newStats);
+    //const diffStats=calculateDiff(newStats);
     stats=newStats;
-    return new Response(getHtml(diffStats), {
+    return new Response(getHtml(/*diffStats*/), {
         headers: {
             'content-type': 'text/html',
             'cache-control': 'no-cache; no-store; max-age=0'
@@ -33,9 +29,9 @@ async function handleRequest(req:Request):Promise<Response> {
 
 }
 
-async function getStats():Promise<Record<string, number>> {
+async function getStats():Promise<Record<string, any>> {
     const limit='100', filter='not-response';
-    const s:Record<string, number>={};
+    const s:Record<string, any>={};
     let to;
     while(1) {
         const qs=new URLSearchParams({
@@ -60,7 +56,11 @@ async function getStats():Promise<Record<string, number>> {
         if(!resJson || !resJson.payload || !resJson.payload.value)
             return s;
         for(const i of resJson.payload.value)
-            s[i.title]=i.views;
+            s[i.title]={
+                views: i.views,
+                reads: i.reads,
+                claps: i.claps
+            };
         for(const k in resJson.payload.references.Collection)
             followers=resJson.payload.references.Collection[k].metadata.followerCount;
         if(resJson.payload.paging.next)
@@ -137,7 +137,7 @@ function getScriptToFetchViews() {
     const prevTS=d.valueOf();
     fetch(window.location+'&prevTS='+prevTS+'&currTS='+Date.now()+'&getViews').then(d=>{
         d.text().then(v=>{
-            document.getElementById('lviews').innerHTML=v
+            document.getElementById('lviews').innerHTML=v;
         });
     });`;
 }
@@ -152,15 +152,16 @@ function getScriptToResetStats() {
     `;
 }
 
-function getTable(d:Record<string, number>, n:number=-1) {
+function getTable(d:Record<string, any>, n:number=-1) {
     let ret='<table class="minimalistBlack">', count=0;
     for(const k in d) {
+        const v:number=d[k].views, r:number=d[k].reads, c:number=d[k].claps;
         count++;
         if(n>0 && count>n)
             break;
         ret+=`<tr>
         <td>${k}</td>
-        <td>${d[k]}</td>
+        <td>${v},${r},${c}</td>
         </tr>`;
     }
     ret+='</table>';
@@ -170,14 +171,16 @@ function getTable(d:Record<string, number>, n:number=-1) {
 function getTotalViews() {
     let views=0;
     for(const k in stats)
-        views+=stats[k];
+        views+=stats[k].views;
     return views;
 }
 
-function getHtml(diffStats:Record<string, number>) {
+function getHtml(/*diffStats:Record<string, number>*/) {
+    /*
     let newViews=0;
     for(const k in diffStats)
         newViews+=diffStats[k];
+    */
     let ret=`<html>
     <head>
     <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=${fontFamily}">
@@ -196,16 +199,17 @@ function getHtml(diffStats:Record<string, number>) {
     <p class='followers'>Followers: <label class="bigNumber">${followers}</label></p>
     <p class="views">Today's views: <label id="lviews" class="bigNumber">0</label></p>
     <p class='views'>Unread notifcations: <label class="bigNumber">${unreadNotifications}</label></p>
-    <p class='newViews'>${newViews} new views</p>
-    ${getTable(diffStats)}
-    <p class="allArticles">Stats of last 10 articles</p>
-    ${getTable(stats, 10)}
-    <p class="allArticles">All articles</p>
+    <p class="allArticles">Detailed stats</p>
     <p>Total articles: ${Object.keys(stats).length}, Total views: ${getTotalViews()}</p>
-    ${getTable(sortData(stats))}
+    ${getTable(stats)}
     </body>
     </html>`;
     return ret;
+
+    /*
+    <p class='newViews'>${newViews} new views</p>
+    ${getTable(diffStats)}
+    */
 }
 
 function getCSS():string {
