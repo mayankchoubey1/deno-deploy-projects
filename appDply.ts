@@ -18,9 +18,9 @@ async function handleRequest(req:Request):Promise<Response> {
     if(u.searchParams.has('getViews'))
         return new Response(await getTodayViews(u.searchParams.get('prevTS'), u.searchParams.get('currTS')));
     const newStats=await getStats();
-    //const diffStats=calculateDiff(newStats);
+    const diffStats=calculateDiff(newStats);
     stats=newStats;
-    return new Response(getHtml(/*diffStats*/), {
+    return new Response(getHtml(diffStats), {
         headers: {
             'content-type': 'text/html',
             'cache-control': 'no-cache; no-store; max-age=0'
@@ -80,10 +80,10 @@ function sortData(data:Record<string, number>) {
         .reduce((r, [k, v]) => ({ ...r, [k]: v }), {});
 }
 
-function calculateDiff(newStats:Record<string, number>) {
+function calculateDiff(newStats:Record<string, any>) {
     const diffStats:Record<string, number>={};
     for(const s in newStats) {
-        const diff=newStats[s]-stats[s]||0;
+        const diff=newStats[s].views-stats[s].views||0;
         if(diff>0)
             diffStats[s]=diff;
     }
@@ -168,6 +168,18 @@ function getTable(d:Record<string, any>, n:number=-1) {
     return ret;
 }
 
+function getTableDiff(d:Record<string, number>) {
+    let ret='<table class="minimalistBlack">', count=0;
+    for(const k in d) {
+        ret+=`<tr>
+        <td>${k}</td>
+        <td>${d[k]}</td>
+        </tr>`;
+    }
+    ret+='</table>';
+    return ret;
+}
+
 function getTotalViews() {
     let views=0;
     for(const k in stats)
@@ -175,12 +187,10 @@ function getTotalViews() {
     return views;
 }
 
-function getHtml(/*diffStats:Record<string, number>*/) {
-    /*
+function getHtml(diffStats:Record<string, number>) {
     let newViews=0;
     for(const k in diffStats)
         newViews+=diffStats[k];
-    */
     let ret=`<html>
     <head>
     <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=${fontFamily}">
@@ -196,20 +206,17 @@ function getHtml(/*diffStats:Record<string, number>*/) {
     <body>
     <p>Last updated: ${getLocalTime(new Date())}</p>
     <p>App started at: ${getLocalTime(appStartupTS)}</p>
-    <p class='followers'>Followers: <label class="bigNumber">${followers}</label></p>
-    <p class="views">Today's views: <label id="lviews" class="bigNumber">0</label></p>
-    <p class='views'>Unread notifcations: <label class="bigNumber">${unreadNotifications}</label></p>
+    <p class="views"><label id="lviews" class="biggerNumber">0</label>&nbsp;views today</p>
+    <p class='followers'><label class="bigNumber">${followers}</label>&nbsp;followers</p>
+    <p class='views'><label class="bigNumber">${unreadNotifications}</label>&nbsp;unread notifcations</p>
+    <p class='views'><label class="bigNumber">${newViews}</label>&nbsp;new views</p>
+    ${getTableDiff(diffStats)}
     <p class="allArticles">Detailed stats</p>
     <p>Total articles: ${Object.keys(stats).length}, Total views: ${getTotalViews()}</p>
     ${getTable(stats)}
     </body>
     </html>`;
     return ret;
-
-    /*
-    <p class='newViews'>${newViews} new views</p>
-    ${getTable(diffStats)}
-    */
 }
 
 function getCSS():string {
@@ -240,6 +247,11 @@ function getCSS():string {
         font-family: ${fontFamily};
         font-weight: bold;
         font-size: 1.25em;
+    }
+    .biggerNumber{
+        font-family: ${fontFamily};
+        font-weight: bold;
+        font-size: 1.5em;
     }
     table.minimalistBlack {
         border: 3px solid #000000;
