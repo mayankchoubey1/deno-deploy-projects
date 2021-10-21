@@ -142,6 +142,19 @@ function getScriptToFetchViews() {
     });`;
 }
 
+function getScriptToFetchPastViews() {
+    return `
+    const d1=new Date();
+    d1.setHours(0, 0, 0, 0);
+    const p1=new Date(d);
+    p1.setHours(p1.getHours() - 24);
+    fetch(window.location+'&prevTS='+p1.valueOf()+'&currTS='+d1.valueOf()+'&getViews').then(d=>{
+        d.text().then(v=>{
+            document.getElementById('yviews').innerHTML=v;
+        });
+    });`;
+}
+
 function getScriptToResetStats() {
     return `
     function resetStats() {
@@ -201,13 +214,17 @@ function getHtml(diffStats:Record<string, number>) {
     ${getScriptToFetchViews()}
     </script>
     <script>
+    ${getScriptToFetchPastViews()}
+    </script>
+    <script>
     ${getScriptToResetStats()}
     </script>
     <body>
     <p>Last updated: ${getLocalTime(new Date())}</p>
     <p>App started at: ${getLocalTime(appStartupTS)}</p>
-    <p class="views"><label id="lviews" class="biggerNumber">0</label>&nbsp;views today</p>
     <p class='followers'><label class="bigNumber">${followers}</label>&nbsp;followers</p>
+    <p class="views"><label id="lviews" class="biggerNumber">0</label>&nbsp;views today</p>
+    <p class="views"><label id="yviews">0</label>&nbsp;views yesterday</p>
     <p class='views'><label class="bigNumber">${unreadNotifications}</label>&nbsp;unread notifcations</p>
     <p class='views'><label class="bigNumber">${newViews}</label>&nbsp;new views</p>
     ${getTableDiff(diffStats)}
