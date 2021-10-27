@@ -9,6 +9,13 @@ const fontFamily='Quicksand';
 let followers:number=0, unreadNotifications:number=0;
 let stats:Record<string, any>={};
 stats=await getStats();
+const twitterFollowers=await getTwitterFollowers();
+
+async function getTwitterFollowers() {
+    const res=await fetch('https://cdn.syndication.twimg.com/widgets/followbutton/info.json?screen_names=deno_land');
+    const resJson=await res.json();
+    return resJson[0]['followers_count'];
+}
 
 async function handleRequest(req:Request):Promise<Response> {
     const u=new URL(req.url);
@@ -222,11 +229,12 @@ function getHtml(diffStats:Record<string, number>) {
     <body>
     <p>Last updated: ${getLocalTime(new Date())}</p>
     <p>App started at: ${getLocalTime(appStartupTS)}</p>
-    <p class='followers'><label class="bigNumber">${followers}</label>&nbsp;followers</p>
     <p class="views"><label id="lviews" class="biggerNumber">0</label>&nbsp;views today</p>
     <p class="views"><label id="yviews">0</label>&nbsp;views yesterday</p>
     <p class='views'><label class="bigNumber">${unreadNotifications}</label>&nbsp;unread notifcations</p>
     <p class='views'><label class="bigNumber">${newViews}</label>&nbsp;new views</p>
+    <p class='followers'><label class="bigNumber">${followers}</label>&nbsp;followers</p>
+    <p class='followers'><label class="bigNumber">${twitterFollowers}</label>&nbsp;twitter followers</p>
     ${getTableDiff(diffStats)}
     <p class="allArticles">Detailed stats</p>
     <p>Total articles: ${Object.keys(stats).length}, Total views: ${getTotalViews()}</p>
