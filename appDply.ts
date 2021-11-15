@@ -5,7 +5,7 @@ const medAuthToken=Deno.env.get('MED_AUTH_TOKEN') || "";
 const rsp401=new Response(null, {status: 401});
 const rsp200=new Response(null);
 const appStartupTS=new Date();
-const fontFamily='Quicksand';
+const fontFamily='Archivo';
 let followers:number=0, unreadNotifications:number=0;
 let stats:Record<string, any>={};
 stats=await getStats();
@@ -131,9 +131,14 @@ async function getUnreadNotifications():Promise<number> {
         }
     });
     const resBody=await res.text();
-    const resJson=JSON.parse(resBody.split("</x>")[1]);
-    if(!resJson || !resJson.payload || !resJson.payload)
+    let resJson;
+    try {
+        resJson=JSON.parse(resBody.split("</x>")[1]);
+        if(!resJson || !resJson.payload || !resJson.payload)
+            return 0;
+    } catch(e) {
         return 0;
+    }
     return resJson.payload.unreadActivityCount;
 }
 
@@ -155,11 +160,19 @@ function getScriptToFetchPastViews() {
     d1.setHours(0, 0, 0, 0);
     const p1=new Date(d);
     p1.setHours(p1.getHours() - 24);
+    const p2=new Date(p1);
+    p2.setHours(p1.getHours() - 24);
     fetch(window.location+'&prevTS='+p1.valueOf()+'&currTS='+d1.valueOf()+'&getViews').then(d=>{
         d.text().then(v=>{
             document.getElementById('yviews').innerHTML=v;
         });
-    });`;
+    });
+    fetch(window.location+'&prevTS='+p2.valueOf()+'&currTS='+p1.valueOf()+'&getViews').then(d=>{
+        d.text().then(v=>{
+            document.getElementById('yyviews').innerHTML=v;
+        });
+    });
+    `;
 }
 
 function getScriptToResetStats() {
@@ -181,7 +194,7 @@ function getTable(d:Record<string, any>, n:number=-1) {
             break;
         ret+=`<tr>
         <td>${k}</td>
-        <td>${v},${r},${c}</td>
+        <td><label class="smallestNumber">${v}</label>,${r},${c}</td>
         </tr>`;
     }
     ret+='</table>';
@@ -213,6 +226,7 @@ function getHtml(diffStats:Record<string, number>) {
         newViews+=diffStats[k];
     let ret=`<html>
     <head>
+    <meta name=”viewport” content=”width=device-width, initial-scale=1.0″>
     <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=${fontFamily}">
     <style>
     ${getCSS()}
@@ -229,12 +243,12 @@ function getHtml(diffStats:Record<string, number>) {
     <body>
     <p>Last updated: ${getLocalTime(new Date())}</p>
     <p>App started at: ${getLocalTime(appStartupTS)}</p>
-    <p class="views"><label id="lviews" class="biggerNumber">0</label>&nbsp;views today</p>
-    <p class="views"><label id="yviews">0</label>&nbsp;views yesterday</p>
+    <p class="views"><label id="lviews" class="biggestNumber">0</label>&nbsp;views today</p>
+    <p class='followers'><label class="biggerNumber">${followers}</label>&nbsp;followers</p>
+    <p class="views"><label id="yviews" class="smallestNumber">0</label>&nbsp;views yesterday, <label id="yyviews" class="smallestNumber">0</label>&nbsp;views day before yesterday</p>
     <p class='views'><label class="bigNumber">${unreadNotifications}</label>&nbsp;unread notifcations</p>
     <p class='views'><label class="bigNumber">${newViews}</label>&nbsp;new views</p>
-    <p class='followers'><label class="bigNumber">${followers}</label>&nbsp;followers</p>
-    <p class='followers'><label class="bigNumber">${twitterFollowers}</label>&nbsp;twitter followers</p>
+    <p class='tfollowers'><label class="smallerNumber">${twitterFollowers}</label>&nbsp;twitter followers of denoland</p>
     ${getTableDiff(diffStats)}
     <p class="allArticles">Detailed stats</p>
     <p>Total articles: ${Object.keys(stats).length}, Total views: ${getTotalViews()}</p>
@@ -248,7 +262,11 @@ function getCSS():string {
     return `    
     .followers {
         font-family: ${fontFamily};
-        font-size: 4em;
+        font-size: 5em;
+    }
+    .tfollowers {
+        font-family: ${fontFamily};
+        font-size: 2em;
     }
     p {
         font-family: ${fontFamily};
@@ -268,6 +286,16 @@ function getCSS():string {
         font-weight: bold;
         font-size: 4em;
     }
+    .smallerNumber{
+        font-family: ${fontFamily};
+        font-weight: bold;
+        font-size: 1.5em;
+    }
+    .smallestNumber{
+        font-family: ${fontFamily};
+        font-weight: bold;
+        font-size: 1.25em;
+    }
     .bigNumber{
         font-family: ${fontFamily};
         font-weight: bold;
@@ -277,6 +305,11 @@ function getCSS():string {
         font-family: ${fontFamily};
         font-weight: bold;
         font-size: 1.5em;
+    }
+    .biggestNumber{
+        font-family: ${fontFamily};
+        font-weight: bold;
+        font-size: 2em;
     }
     table.minimalistBlack {
         border: 3px solid #000000;
