@@ -5,7 +5,7 @@ const medAuthToken=Deno.env.get('MED_AUTH_TOKEN') || "";
 const rsp401=new Response(null, {status: 401});
 const rsp200=new Response(null);
 const appStartupTS=new Date();
-const fontFamily='Archivo';
+const fontFamily='Noto Sans';
 let followers:number=0, unreadNotifications:number=0;
 let stats:Record<string, any>={};
 stats=await getStats();
