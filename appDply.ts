@@ -1,149 +1,173 @@
 import { serve } from "https://deno.land/std/http/server.ts";
 
-const authToken=Deno.env.get('AUTH_TOKEN') || "";
-const medAuthToken=Deno.env.get('MED_AUTH_TOKEN') || "";
-const rsp401=new Response(null, {status: 401});
-const rsp200=new Response(null);
-const appStartupTS=new Date();
-const fontFamily='Manrope';
-let followers:number=0, unreadNotifications:number=0;
-let stats:Record<string, any>={};
-stats=await getStats();
-const twitterFollowers=await getTwitterFollowers();
+const authToken = Deno.env.get("AUTH_TOKEN") || "";
+const medAuthToken = Deno.env.get("MED_AUTH_TOKEN") || "";
+const rsp401 = new Response(null, { status: 401 });
+const rsp200 = new Response(null);
+const appStartupTS = new Date();
+const fontFamily = "Manrope";
+let followers: number = 0, unreadNotifications: number = 0;
+let stats: Record<string, any> = {};
+stats = await getStats();
+const twitterFollowers = await getTwitterFollowers();
 
 async function getTwitterFollowers() {
-    const res=await fetch('https://cdn.syndication.twimg.com/widgets/followbutton/info.json?screen_names=deno_land');
-    const resJson=await res.json();
-    return resJson[0]['followers_count'];
+  const res = await fetch(
+    "https://cdn.syndication.twimg.com/widgets/followbutton/info.json?screen_names=deno_land",
+  );
+  const resJson = await res.json();
+  return resJson[0]["followers_count"];
 }
 
-async function handleRequest(req:Request):Promise<Response> {
-    const u=new URL(req.url);
-    const token=u.searchParams.get('token');
-    if(!token || token!==authToken)
-        return rsp401;
-    if(u.searchParams.has('getViews'))
-        return new Response(await getTodayViews(u.searchParams.get('prevTS'), u.searchParams.get('currTS')));
-    const newStats=await getStats();
-    const diffStats=calculateDiff(newStats);
-    stats=newStats;
-    return new Response(getHtml(diffStats), {
-        headers: {
-            'content-type': 'text/html',
-            'cache-control': 'no-cache; no-store; max-age=0'
-        }
+async function handleRequest(req: Request): Promise<Response> {
+  const u = new URL(req.url);
+  const token = u.searchParams.get("token");
+  if (!token || token !== authToken) {
+    return rsp401;
+  }
+  if (u.searchParams.has("getViews")) {
+    return new Response(
+      await getTodayViews(
+        u.searchParams.get("prevTS"),
+        u.searchParams.get("currTS"),
+      ),
+    );
+  }
+  const newStats = await getStats();
+  const diffStats = calculateDiff(newStats);
+  stats = newStats;
+  return new Response(getHtml(diffStats), {
+    headers: {
+      "content-type": "text/html",
+      "cache-control": "no-cache; no-store; max-age=0",
+    },
+  });
+}
+
+async function getStats(): Promise<Record<string, any>> {
+  const limit = "100", filter = "not-response";
+  const s: Record<string, any> = {};
+  let to;
+  while (1) {
+    const qs = new URLSearchParams({
+      limit,
+      filter,
     });
-
-}
-
-async function getStats():Promise<Record<string, any>> {
-    const limit='100', filter='not-response';
-    const s:Record<string, any>={};
-    let to;
-    while(1) {
-        const qs=new URLSearchParams({
-            limit,
-            filter
-        });
-        if(to)
-            qs.set('to', to);
-        const res=await fetch("https://medium.com/@choubey/stats?"+qs.toString(), {
-            headers: {
-                'Accept': 'application/json',
-                'Cookie': medAuthToken
-            }
-        });
-        const resBody=await res.text();
-        let resJson;
-        try {
-            resJson=JSON.parse(resBody.split("</x>")[1]);
-        } catch(err) {
-            return s;
-        }
-        if(!resJson || !resJson.payload || !resJson.payload.value)
-            return s;
-        for(const i of resJson.payload.value)
-            s[i.title]={
-                views: i.views,
-                reads: i.reads,
-                claps: i.claps
-            };
-        for(const k in resJson.payload.references.Collection)
-            followers=resJson.payload.references.Collection[k].metadata.followerCount;
-        if(resJson.payload.paging.next)
-            to=resJson.payload.paging.next.to;
-        else
-            break;
+    if (to) {
+      qs.set("to", to);
     }
-    unreadNotifications=await getUnreadNotifications();
-    return s;
-}
-
-
-
-function sortData(data:Record<string, number>) {
-    return Object.entries(data)
-        .sort(([,a],[,b]) => b-a)
-        .reduce((r, [k, v]) => ({ ...r, [k]: v }), {});
-}
-
-function calculateDiff(newStats:Record<string, any>) {
-    const diffStats:Record<string, number>={};
-    for(const s in newStats) {
-        const diff=newStats[s].views-stats[s].views||0;
-        if(diff>0)
-            diffStats[s]=diff;
-    }
-    const sortedDiffStats:Record<string, number> = sortData(diffStats);
-    return sortedDiffStats;
-}
-
-function getLocalTime(d:Date) {
-    return d.toLocaleString('en-US', { timeZone: 'America/Los_Angeles' });
-}
-
-async function getTodayViews(prevTS:string|null, currTS: string|null):Promise<string> {
-    if(!(prevTS && currTS))
-        return '0';
-    const url="https://medium.com/@choubey/stats/total/"+prevTS+"/"+currTS;
-    const res=await fetch(url, {
+    const res = await fetch(
+      "https://medium.com/@choubey/stats?" + qs.toString(),
+      {
         headers: {
-            'Accept': 'application/json',
-            'Cookie': medAuthToken
-        }
-    });
-    const resBody=await res.text();
-    const resJson=JSON.parse(resBody.split("</x>")[1]);
-    if(!resJson || !resJson.payload || !resJson.payload.value)
-        return '0';
-    let views=0;
-    for(const v of resJson.payload.value)
-        views+=v.views;
-    return views.toString();
-}
-
-async function getUnreadNotifications():Promise<number> {
-    const url="https://medium.com/_/api/activity-status";
-    const res=await fetch(url, {
-        headers: {
-            'Accept': 'application/json',
-            'Cookie': medAuthToken
-        }
-    });
-    const resBody=await res.text();
+          "Accept": "application/json",
+          "Cookie": medAuthToken,
+        },
+      },
+    );
+    const resBody = await res.text();
     let resJson;
     try {
-        resJson=JSON.parse(resBody.split("</x>")[1]);
-        if(!resJson || !resJson.payload || !resJson.payload)
-            return 0;
-    } catch(e) {
-        return 0;
+      resJson = JSON.parse(resBody.split("</x>")[1]);
+    } catch (err) {
+      return s;
     }
-    return resJson.payload.unreadActivityCount;
+    if (!resJson || !resJson.payload || !resJson.payload.value) {
+      return s;
+    }
+    for (const i of resJson.payload.value) {
+      s[i.title] = {
+        views: i.views,
+        reads: i.reads,
+        claps: i.claps,
+      };
+    }
+    for (const k in resJson.payload.references.Collection) {
+      followers =
+        resJson.payload.references.Collection[k].metadata.followerCount;
+    }
+    if (resJson.payload.paging.next) {
+      to = resJson.payload.paging.next.to;
+    } else {
+      break;
+    }
+  }
+  unreadNotifications = await getUnreadNotifications();
+  return s;
+}
+
+function sortData(data: Record<string, number>) {
+  return Object.entries(data)
+    .sort(([, a], [, b]) => b - a)
+    .reduce((r, [k, v]) => ({ ...r, [k]: v }), {});
+}
+
+function calculateDiff(newStats: Record<string, any>) {
+  const diffStats: Record<string, number> = {};
+  for (const s in newStats) {
+    const diff = newStats[s].views - stats[s].views || 0;
+    if (diff > 0) {
+      diffStats[s] = diff;
+    }
+  }
+  const sortedDiffStats: Record<string, number> = sortData(diffStats);
+  return sortedDiffStats;
+}
+
+function getLocalTime(d: Date) {
+  return d.toLocaleString("en-US", { timeZone: "America/Los_Angeles" });
+}
+
+async function getTodayViews(
+  prevTS: string | null,
+  currTS: string | null,
+): Promise<string> {
+  if (!(prevTS && currTS)) {
+    return "0";
+  }
+  const url = "https://medium.com/@choubey/stats/total/" + prevTS + "/" +
+    currTS;
+  const res = await fetch(url, {
+    headers: {
+      "Accept": "application/json",
+      "Cookie": medAuthToken,
+    },
+  });
+  const resBody = await res.text();
+  const resJson = JSON.parse(resBody.split("</x>")[1]);
+  if (!resJson || !resJson.payload || !resJson.payload.value) {
+    return "0";
+  }
+  let views = 0;
+  for (const v of resJson.payload.value) {
+    views += v.views;
+  }
+  return views.toString();
+}
+
+async function getUnreadNotifications(): Promise<number> {
+  const url = "https://medium.com/_/api/activity-status";
+  const res = await fetch(url, {
+    headers: {
+      "Accept": "application/json",
+      "Cookie": medAuthToken,
+    },
+  });
+  const resBody = await res.text();
+  let resJson;
+  try {
+    resJson = JSON.parse(resBody.split("</x>")[1]);
+    if (!resJson || !resJson.payload || !resJson.payload) {
+      return 0;
+    }
+  } catch (e) {
+    return 0;
+  }
+  return resJson.payload.unreadActivityCount;
 }
 
 function getScriptToFetchViews() {
-    return `
+  return `
     const d=new Date();
     d.setHours(0, 0, 0, 0);
     const prevTS=d.valueOf();
@@ -160,7 +184,7 @@ function getScriptToFetchViews() {
 }
 
 function getScriptToFetchPastViews() {
-    return `
+  return `
     const d1=new Date();
     d1.setHours(0, 0, 0, 0);
     const p1=new Date(d);
@@ -181,7 +205,7 @@ function getScriptToFetchPastViews() {
 }
 
 function getScriptToResetStats() {
-    return `
+  return `
     function resetStats() {
         fetch(window.location+'&reset').then(d=>{
             window.location.reload();
@@ -190,46 +214,51 @@ function getScriptToResetStats() {
     `;
 }
 
-function getTable(d:Record<string, any>, n:number=-1) {
-    let ret='<table class="minimalistBlack">', count=0;
-    for(const k in d) {
-        const v:number=d[k].views, r:number=d[k].reads, c:number=d[k].claps;
-        count++;
-        if(n>0 && count>n)
-            break;
-        ret+=`<tr>
+function getTable(d: Record<string, any>, n: number = -1) {
+  let ret = '<table class="minimalistBlack">', count = 0;
+  for (const k in d) {
+    const v: number = d[k].views,
+      r: number = d[k].reads,
+      c: number = d[k].claps;
+    count++;
+    if (n > 0 && count > n) {
+      break;
+    }
+    ret += `<tr>
         <td>${k}</td>
         <td><label class="smallestNumber">${v}</label>,${r},${c}</td>
         </tr>`;
-    }
-    ret+='</table>';
-    return ret;
+  }
+  ret += "</table>";
+  return ret;
 }
 
-function getTableDiff(d:Record<string, number>) {
-    let ret='<table class="minimalistBlack">', count=0;
-    for(const k in d) {
-        ret+=`<tr>
+function getTableDiff(d: Record<string, number>) {
+  let ret = '<table class="minimalistBlack">', count = 0;
+  for (const k in d) {
+    ret += `<tr>
         <td>${k}</td>
         <td>${d[k]}</td>
         </tr>`;
-    }
-    ret+='</table>';
-    return ret;
+  }
+  ret += "</table>";
+  return ret;
 }
 
 function getTotalViews() {
-    let views=0;
-    for(const k in stats)
-        views+=stats[k].views;
-    return views;
+  let views = 0;
+  for (const k in stats) {
+    views += stats[k].views;
+  }
+  return views;
 }
 
-function getHtml(diffStats:Record<string, number>) {
-    let newViews=0;
-    for(const k in diffStats)
-        newViews+=diffStats[k];
-    let ret=`<html>
+function getHtml(diffStats: Record<string, number>) {
+  let newViews = 0;
+  for (const k in diffStats) {
+    newViews += diffStats[k];
+  }
+  let ret = `<html>
     <head>
     <meta name=”viewport” content=”width=device-width, initial-scale=1.0″>
     <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=${fontFamily}">
@@ -256,15 +285,17 @@ function getHtml(diffStats:Record<string, number>) {
     <p class='tfollowers'><label class="smallerNumber">${twitterFollowers}</label>&nbsp;twitter followers of denoland</p>
     ${getTableDiff(diffStats)}
     <p class="allArticles">Detailed stats</p>
-    <p>Total articles: ${Object.keys(stats).length}, Total views: ${getTotalViews()}</p>
+    <p>Total articles: ${
+    Object.keys(stats).length
+  }, Total views: ${getTotalViews()}</p>
     ${getTable(stats)}
     </body>
     </html>`;
-    return ret;
+  return ret;
 }
 
-function getCSS():string {
-    return `    
+function getCSS(): string {
+  return `    
     .followers {
         font-family: ${fontFamily};
         font-size: 5em;
@@ -355,9 +386,11 @@ function getCSS():string {
     `;
 }
 
-await serve(async (req:Request) => {
-    try {
-        return await handleRequest(req)
-    } catch(e) {console.log(e)}
-    return new Response(null, {status: 500});
+await serve(async (req: Request) => {
+  try {
+    return await handleRequest(req);
+  } catch (e) {
+    console.log(e);
+  }
+  return new Response(null, { status: 500 });
 });
