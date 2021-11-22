@@ -286,7 +286,7 @@ function getHtml(diffStats: Record<string, number>) {
     <p>App started at: ${getLocalTime(appStartupTS)}</p>
     <p class="views"><label id="lviews" class="biggestNumber">0</label>&nbsp;views today&nbsp;(est:<label id="estviews" class="smallestNumber">0</label>)</p>
     <p class='followers'><label class="biggerNumber">${followers}</label>&nbsp;followers</p>
-    <p class="views"><label id="yviews" class="smallestNumber">0</label>,&nbsp;<label id="yyviews" class="smallestNumber">0</label>,&nbsp;<label id="yyyviews" class="smallestNumber">0</label>&nbsp;views in last 2 days</p>
+    <p class="views"><label id="yviews" class="smallestNumber">0</label>,&nbsp;<label id="yyviews" class="smallestNumber">0</label>,&nbsp;<label id="yyyviews" class="smallestNumber">0</label>&nbsp;views in last 3 days</p>
     <p class='views'><label class="bigNumber">${unreadNotifications}</label>&nbsp;unread notifcations</p>
     <p class='views'><label class="bigNumber">${newViews}</label>&nbsp;new views</p>
     <p class='tfollowers'><label class="smallerNumber">${twitterFollowers}</label>&nbsp;twitter followers of denoland</p>
