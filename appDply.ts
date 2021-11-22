@@ -191,6 +191,8 @@ function getScriptToFetchPastViews() {
     p1.setHours(p1.getHours() - 24);
     const p2=new Date(p1);
     p2.setHours(p1.getHours() - 24);
+    const p3=new Date(p2);
+    p3.setHours(p2.getHours() - 24);
     fetch(window.location+'&prevTS='+p1.valueOf()+'&currTS='+d1.valueOf()+'&getViews').then(d=>{
         d.text().then(v=>{
             document.getElementById('yviews').innerHTML=v;
@@ -199,6 +201,11 @@ function getScriptToFetchPastViews() {
     fetch(window.location+'&prevTS='+p2.valueOf()+'&currTS='+p1.valueOf()+'&getViews').then(d=>{
         d.text().then(v=>{
             document.getElementById('yyviews').innerHTML=v;
+        });
+    });
+    fetch(window.location+'&prevTS='+p3.valueOf()+'&currTS='+p2.valueOf()+'&getViews').then(d=>{
+        d.text().then(v=>{
+            document.getElementById('yyyviews').innerHTML=v;
         });
     });
     `;
@@ -279,7 +286,7 @@ function getHtml(diffStats: Record<string, number>) {
     <p>App started at: ${getLocalTime(appStartupTS)}</p>
     <p class="views"><label id="lviews" class="biggestNumber">0</label>&nbsp;views today&nbsp;(est:<label id="estviews" class="smallestNumber">0</label>)</p>
     <p class='followers'><label class="biggerNumber">${followers}</label>&nbsp;followers</p>
-    <p class="views"><label id="yviews" class="smallestNumber">0</label>,&nbsp;<label id="yyviews" class="smallestNumber">0</label>&nbsp;views in last 2 days</p>
+    <p class="views"><label id="yviews" class="smallestNumber">0</label>,&nbsp;<label id="yyviews" class="smallestNumber">0</label>,&nbsp;<label id="yyyviews" class="smallestNumber">0</label>&nbsp;views in last 2 days</p>
     <p class='views'><label class="bigNumber">${unreadNotifications}</label>&nbsp;unread notifcations</p>
     <p class='views'><label class="bigNumber">${newViews}</label>&nbsp;new views</p>
     <p class='tfollowers'><label class="smallerNumber">${twitterFollowers}</label>&nbsp;twitter followers of denoland</p>
