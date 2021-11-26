@@ -7,8 +7,8 @@ const rsp200 = new Response(null);
 const appStartupTS = new Date();
 const fontFamily = "Manrope";
 let followers: number = 0, unreadNotifications: number = 0;
-let stats: Record<string, any> = {};
-stats = await getStats();
+//let stats: Record<string, any> = {};
+//stats = await getStats();
 const twitterFollowers = await getTwitterFollowers();
 
 async function getTwitterFollowers() {
@@ -33,10 +33,16 @@ async function handleRequest(req: Request): Promise<Response> {
       ),
     );
   }
-  const newStats = await getStats();
-  const diffStats = calculateDiff(newStats);
-  stats = newStats;
-  return new Response(getHtml(diffStats), {
+  if (u.searchParams.has("getFollowers")) {
+    return new Response(await getFollowers());
+  }
+  if(u.searchParams.has("getUnreadNotifications")) {
+    return new Response(`${await getUnreadNotifications()}`);
+  }
+  //const newStats = await getStats();
+  //const diffStats = calculateDiff(newStats);
+  //stats = newStats;
+  return new Response(getHtml(/*diffStats*/), {
     headers: {
       "content-type": "text/html",
       "cache-control": "no-cache; no-store; max-age=0",
@@ -44,6 +50,37 @@ async function handleRequest(req: Request): Promise<Response> {
   });
 }
 
+async function getFollowers() {
+    const limit = "1", filter = "not-response";
+    const qs = new URLSearchParams({
+      limit,
+      filter,
+    });
+    const res = await fetch(
+      "https://medium.com/@choubey/stats?" + qs.toString(),
+      {
+        headers: {
+          "Accept": "application/json",
+          "Cookie": medAuthToken,
+        },
+    });
+    const resBody = await res.text();
+    let resJson;
+    try {
+      resJson = JSON.parse(resBody.split("</x>")[1]);
+    } catch (err) {
+      return 0;
+    }
+    if (!resJson || !resJson.payload || !resJson.payload.references || !resJson.payload.references.Collection) {
+      return 0;
+    }
+    for (const k in resJson.payload.references.Collection) {
+      return resJson.payload.references.Collection[k].metadata.followerCount;
+    }
+    return 0;
+}
+
+/*
 async function getStats(): Promise<Record<string, any>> {
   const limit = "100", filter = "not-response";
   const s: Record<string, any> = {};
@@ -95,13 +132,17 @@ async function getStats(): Promise<Record<string, any>> {
   unreadNotifications = await getUnreadNotifications();
   return s;
 }
+*/
 
+/*
 function sortData(data: Record<string, number>) {
   return Object.entries(data)
     .sort(([, a], [, b]) => b - a)
     .reduce((r, [k, v]) => ({ ...r, [k]: v }), {});
 }
+*/
 
+/*
 function calculateDiff(newStats: Record<string, any>) {
   const diffStats: Record<string, number> = {};
   for (const s in newStats) {
@@ -113,6 +154,7 @@ function calculateDiff(newStats: Record<string, any>) {
   const sortedDiffStats: Record<string, number> = sortData(diffStats);
   return sortedDiffStats;
 }
+*/
 
 function getLocalTime(d: Date) {
   return d.toLocaleString("en-US", { timeZone: "America/Los_Angeles" });
@@ -171,6 +213,8 @@ function getScriptToFetchViews() {
     const d=new Date();
     d.setHours(0, 0, 0, 0);
     const prevTS=d.valueOf();
+    document.getElementById('lviews').innerHTML="0";
+    document.getElementById('estviews').innerHTML="0";
     fetch(window.location+'&prevTS='+prevTS+'&currTS='+Date.now()+'&getViews').then(d=>{
         d.text().then(v=>{
             document.getElementById('lviews').innerHTML=v;
@@ -193,6 +237,9 @@ function getScriptToFetchPastViews() {
     p2.setHours(p1.getHours() - 24);
     const p3=new Date(p2);
     p3.setHours(p2.getHours() - 24);
+    document.getElementById('yviews').innerHTML="0";
+    document.getElementById('yyviews').innerHTML="0";
+    document.getElementById('yyyviews').innerHTML="0";
     fetch(window.location+'&prevTS='+p1.valueOf()+'&currTS='+d1.valueOf()+'&getViews').then(d=>{
         d.text().then(v=>{
             document.getElementById('yviews').innerHTML=v;
@@ -209,6 +256,26 @@ function getScriptToFetchPastViews() {
         });
     });
     `;
+}
+
+function getScriptToFetchFollowers() {
+    return `
+      document.getElementById('followers').innerHTML="0";
+      fetch(window.location+'&getFollowers').then(d=>{
+          d.text().then(v=>{
+            document.getElementById('followers').innerHTML=v
+          });
+      });`;
+}
+
+function getScriptToFetchUnreadNotifications() {
+    return `
+      document.getElementById('unreadNotifications').innerHTML="0";
+      fetch(window.location+'&getUnreadNotifications').then(d=>{
+          d.text().then(v=>{
+            document.getElementById('unreadNotifications').innerHTML=v
+          });
+      });`;
 }
 
 function getScriptToResetStats() {
@@ -252,6 +319,7 @@ function getTableDiff(d: Record<string, number>) {
   return ret;
 }
 
+/*
 function getTotalViews() {
   let views = 0;
   for (const k in stats) {
@@ -259,12 +327,15 @@ function getTotalViews() {
   }
   return views;
 }
+*/
 
-function getHtml(diffStats: Record<string, number>) {
+function getHtml(/*diffStats: Record<string, number>*/) {
   let newViews = 0;
+  /*
   for (const k in diffStats) {
     newViews += diffStats[k];
   }
+  */
   let ret = `<html>
     <head>
     <meta name=”viewport” content=”width=device-width, initial-scale=1.0″>
@@ -272,6 +343,17 @@ function getHtml(diffStats: Record<string, number>) {
     <style>
     ${getCSS()}
     </style>
+    <script src="https://use.fontawesome.com/a3bd6a1ec7.js"></script>
+    <body>
+    <p>Last updated: ${getLocalTime(new Date())}</p>
+    <p>App started at: ${getLocalTime(appStartupTS)}</p>
+    <p class="views"><label id="lviews" class="biggestNumber">0</label>&nbsp;views today&nbsp;(est:<label id="estviews" class="smallestNumber">0</label>)</p>
+    <p class='followers'><label id="followers" class="biggerNumber">0</label>&nbsp;followers</p>
+    <p class="views"><label id="yviews" class="smallestNumber">0</label>,&nbsp;
+    <label id="yyviews" class="smallestNumber">0</label>,&nbsp;
+    <label id="yyyviews" class="smallestNumber">0</label>&nbsp;views in last 3 days</p>
+    <p class='views'><label id="unreadNotifications" class="bigNumber">0</label>&nbsp;unread notifcations</p>
+    <p class='tfollowers'><label class="smallerNumber">${twitterFollowers}</label>&nbsp;twitter followers of denoland</p>
     <script>
     ${getScriptToFetchViews()}
     </script>
@@ -279,17 +361,16 @@ function getHtml(diffStats: Record<string, number>) {
     ${getScriptToFetchPastViews()}
     </script>
     <script>
-    ${getScriptToResetStats()}
+    ${getScriptToFetchFollowers()}
     </script>
-    <body>
-    <p>Last updated: ${getLocalTime(new Date())}</p>
-    <p>App started at: ${getLocalTime(appStartupTS)}</p>
-    <p class="views"><label id="lviews" class="biggestNumber">0</label>&nbsp;views today&nbsp;(est:<label id="estviews" class="smallestNumber">0</label>)</p>
-    <p class='followers'><label class="biggerNumber">${followers}</label>&nbsp;followers</p>
-    <p class="views"><label id="yviews" class="smallestNumber">0</label>,&nbsp;<label id="yyviews" class="smallestNumber">0</label>,&nbsp;<label id="yyyviews" class="smallestNumber">0</label>&nbsp;views in last 3 days</p>
-    <p class='views'><label class="bigNumber">${unreadNotifications}</label>&nbsp;unread notifcations</p>
+    <script>
+    ${getScriptToFetchUnreadNotifications()}
+    </script>
+    </body>
+    </html>`;
+
+    /*
     <p class='views'><label class="bigNumber">${newViews}</label>&nbsp;new views</p>
-    <p class='tfollowers'><label class="smallerNumber">${twitterFollowers}</label>&nbsp;twitter followers of denoland</p>
     ${getTableDiff(diffStats)}
     <p class="allArticles">Detailed stats</p>
     <p>Total articles: ${
@@ -297,7 +378,7 @@ function getHtml(diffStats: Record<string, number>) {
   }, Total views: ${getTotalViews()}</p>
     ${getTable(stats)}
     </body>
-    </html>`;
+    </html>`;*/
   return ret;
 }
 
