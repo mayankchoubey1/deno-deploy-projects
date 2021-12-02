@@ -5,7 +5,7 @@ const medAuthToken = Deno.env.get("MED_AUTH_TOKEN") || "";
 const rsp401 = new Response(null, { status: 401 });
 const rsp200 = new Response(null);
 const appStartupTS = new Date();
-const fontFamily = "Space Mono";
+const fontFamily = "Rubik";
 let followers: number = 0, unreadNotifications: number = 0;
 //let stats: Record<string, any> = {};
 //stats = await getStats();
@@ -392,8 +392,8 @@ async function getHtml(/*diffStats: Record<string, number>*/) {
     <body>
     <p>Last updated: ${getLocalTime(new Date())}</p>
     <p>App started at: ${getLocalTime(appStartupTS)}</p>
-    <p class="views"><label id="lviews" class="biggestNumber">0</label>&nbsp;views today&nbsp;(est:<label id="estviews" class="smallestNumber">0</label>)</p>
     <p class='followers'><label id="followers" class="biggerNumber">0</label>&nbsp;followers</p>
+    <p class="views"><label id="lviews" class="biggestNumber">0</label>&nbsp;views today&nbsp;<br><label id="estviews" class="smallestNumber">0</label>&nbsp;Estimated</p>
     <p class='views'><label id="unreadNotifications" class="bigNumber">0</label>&nbsp;unread notifcations</p>
     <p class="tfollowers"><label id="yviews" class="smallestNumber">0</label>,&nbsp;
     <label id="yyviews" class="smallestNumber">0</label>,&nbsp;
