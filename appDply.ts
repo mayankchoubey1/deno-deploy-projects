@@ -350,7 +350,6 @@ async function getLast10ArticleStats(): Promise<Record<string, any>> {
     return s;
   }
   for (const i of resJson.payload.value) {
-    console.log(i.title);
     const title = i.title.replace(/[^A-Za-z0-9\s]/g, "").replace(
       /\s{2,}/g,
       " ",
