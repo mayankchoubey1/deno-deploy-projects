@@ -5,7 +5,7 @@ const medAuthToken = Deno.env.get("MED_AUTH_TOKEN") || "";
 const rsp401 = new Response(null, { status: 401 });
 const rsp200 = new Response(null);
 const appStartupTS = new Date();
-const fontFamily = "Manrope";
+const fontFamily = "Space Mono";
 let followers: number = 0, unreadNotifications: number = 0;
 //let stats: Record<string, any> = {};
 //stats = await getStats();
@@ -36,13 +36,13 @@ async function handleRequest(req: Request): Promise<Response> {
   if (u.searchParams.has("getFollowers")) {
     return new Response(await getFollowers());
   }
-  if(u.searchParams.has("getUnreadNotifications")) {
+  if (u.searchParams.has("getUnreadNotifications")) {
     return new Response(`${await getUnreadNotifications()}`);
   }
   //const newStats = await getStats();
   //const diffStats = calculateDiff(newStats);
   //stats = newStats;
-  return new Response(getHtml(/*diffStats*/), {
+  return new Response(await getHtml(/*diffStats*/), {
     headers: {
       "content-type": "text/html",
       "cache-control": "no-cache; no-store; max-age=0",
@@ -51,33 +51,37 @@ async function handleRequest(req: Request): Promise<Response> {
 }
 
 async function getFollowers() {
-    const limit = "1", filter = "not-response";
-    const qs = new URLSearchParams({
-      limit,
-      filter,
-    });
-    const res = await fetch(
-      "https://medium.com/@choubey/stats?" + qs.toString(),
-      {
-        headers: {
-          "Accept": "application/json",
-          "Cookie": medAuthToken,
-        },
-    });
-    const resBody = await res.text();
-    let resJson;
-    try {
-      resJson = JSON.parse(resBody.split("</x>")[1]);
-    } catch (err) {
-      return 0;
-    }
-    if (!resJson || !resJson.payload || !resJson.payload.references || !resJson.payload.references.Collection) {
-      return 0;
-    }
-    for (const k in resJson.payload.references.Collection) {
-      return resJson.payload.references.Collection[k].metadata.followerCount;
-    }
+  const limit = "1", filter = "not-response";
+  const qs = new URLSearchParams({
+    limit,
+    filter,
+  });
+  const res = await fetch(
+    "https://medium.com/@choubey/stats?" + qs.toString(),
+    {
+      headers: {
+        "Accept": "application/json",
+        "Cookie": medAuthToken,
+      },
+    },
+  );
+  const resBody = await res.text();
+  let resJson;
+  try {
+    resJson = JSON.parse(resBody.split("</x>")[1]);
+  } catch (err) {
     return 0;
+  }
+  if (
+    !resJson || !resJson.payload || !resJson.payload.references ||
+    !resJson.payload.references.Collection
+  ) {
+    return 0;
+  }
+  for (const k in resJson.payload.references.Collection) {
+    return resJson.payload.references.Collection[k].metadata.followerCount;
+  }
+  return 0;
 }
 
 /*
@@ -259,7 +263,7 @@ function getScriptToFetchPastViews() {
 }
 
 function getScriptToFetchFollowers() {
-    return `
+  return `
       document.getElementById('followers').innerHTML="0";
       fetch(window.location+'&getFollowers').then(d=>{
           d.text().then(v=>{
@@ -269,7 +273,7 @@ function getScriptToFetchFollowers() {
 }
 
 function getScriptToFetchUnreadNotifications() {
-    return `
+  return `
       document.getElementById('unreadNotifications').innerHTML="0";
       fetch(window.location+'&getUnreadNotifications').then(d=>{
           d.text().then(v=>{
@@ -319,6 +323,47 @@ function getTableDiff(d: Record<string, number>) {
   return ret;
 }
 
+async function getLast10ArticleStats(): Promise<Record<string, any>> {
+  const limit = "10", filter = "not-response";
+  const s: Record<string, any> = {};
+  const qs = new URLSearchParams({
+    limit,
+    filter,
+  });
+  const res = await fetch(
+    "https://medium.com/@choubey/stats?" + qs.toString(),
+    {
+      headers: {
+        "Accept": "application/json",
+        "Cookie": medAuthToken,
+      },
+    },
+  );
+  const resBody = await res.text();
+  let resJson;
+  try {
+    resJson = JSON.parse(resBody.split("</x>")[1]);
+  } catch (err) {
+    return s;
+  }
+  if (!resJson || !resJson.payload || !resJson.payload.value) {
+    return s;
+  }
+  for (const i of resJson.payload.value) {
+    console.log(i.title);
+    const title = i.title.replace(/[^A-Za-z0-9\s]/g, "").replace(
+      /\s{2,}/g,
+      " ",
+    );
+    s[title] = {
+      views: i.views,
+      reads: i.reads,
+      claps: i.claps,
+    };
+  }
+  return s;
+}
+
 /*
 function getTotalViews() {
   let views = 0;
@@ -329,7 +374,7 @@ function getTotalViews() {
 }
 */
 
-function getHtml(/*diffStats: Record<string, number>*/) {
+async function getHtml(/*diffStats: Record<string, number>*/) {
   let newViews = 0;
   /*
   for (const k in diffStats) {
@@ -349,10 +394,11 @@ function getHtml(/*diffStats: Record<string, number>*/) {
     <p>App started at: ${getLocalTime(appStartupTS)}</p>
     <p class="views"><label id="lviews" class="biggestNumber">0</label>&nbsp;views today&nbsp;(est:<label id="estviews" class="smallestNumber">0</label>)</p>
     <p class='followers'><label id="followers" class="biggerNumber">0</label>&nbsp;followers</p>
-    <p class="views"><label id="yviews" class="smallestNumber">0</label>,&nbsp;
+    <p class='views'><label id="unreadNotifications" class="bigNumber">0</label>&nbsp;unread notifcations</p>
+    <p class="tfollowers"><label id="yviews" class="smallestNumber">0</label>,&nbsp;
     <label id="yyviews" class="smallestNumber">0</label>,&nbsp;
     <label id="yyyviews" class="smallestNumber">0</label>&nbsp;views in last 3 days</p>
-    <p class='views'><label id="unreadNotifications" class="bigNumber">0</label>&nbsp;unread notifcations</p>
+
     <p class='tfollowers'><label class="smallerNumber">${twitterFollowers}</label>&nbsp;twitter followers of denoland</p>
     <script>
     ${getScriptToFetchViews()}
@@ -366,10 +412,12 @@ function getHtml(/*diffStats: Record<string, number>*/) {
     <script>
     ${getScriptToFetchUnreadNotifications()}
     </script>
+    <p>Last 10 articles</p>
+    ${getTable(await getLast10ArticleStats())}
     </body>
     </html>`;
 
-    /*
+  /*
     <p class='views'><label class="bigNumber">${newViews}</label>&nbsp;new views</p>
     ${getTableDiff(diffStats)}
     <p class="allArticles">Detailed stats</p>
