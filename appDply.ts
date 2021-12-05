@@ -241,22 +241,38 @@ function getScriptToFetchPastViews() {
     p2.setHours(p1.getHours() - 24);
     const p3=new Date(p2);
     p3.setHours(p2.getHours() - 24);
-    document.getElementById('yviews').innerHTML="0";
-    document.getElementById('yyviews').innerHTML="0";
-    document.getElementById('yyyviews').innerHTML="0";
+    const p4=new Date(p3);
+    p4.setHours(p3.getHours() - 24);
+    const p5=new Date(p4);
+    p5.setHours(p4.getHours() - 24);
+    document.getElementById('y1views').innerHTML="0";
+    document.getElementById('y2views').innerHTML="0";
+    document.getElementById('y3views').innerHTML="0";
+    document.getElementById('y4views').innerHTML="0";
+    document.getElementById('y5views').innerHTML="0";
     fetch(window.location+'&prevTS='+p1.valueOf()+'&currTS='+d1.valueOf()+'&getViews').then(d=>{
         d.text().then(v=>{
-            document.getElementById('yviews').innerHTML=v;
+            document.getElementById('y1views').innerHTML=v;
         });
     });
     fetch(window.location+'&prevTS='+p2.valueOf()+'&currTS='+p1.valueOf()+'&getViews').then(d=>{
         d.text().then(v=>{
-            document.getElementById('yyviews').innerHTML=v;
+            document.getElementById('y2views').innerHTML=v;
         });
     });
     fetch(window.location+'&prevTS='+p3.valueOf()+'&currTS='+p2.valueOf()+'&getViews').then(d=>{
         d.text().then(v=>{
-            document.getElementById('yyyviews').innerHTML=v;
+            document.getElementById('y3views').innerHTML=v;
+        });
+    });
+    fetch(window.location+'&prevTS='+p4.valueOf()+'&currTS='+p3.valueOf()+'&getViews').then(d=>{
+        d.text().then(v=>{
+            document.getElementById('y4views').innerHTML=v;
+        });
+    });
+    fetch(window.location+'&prevTS='+p5.valueOf()+'&currTS='+p4.valueOf()+'&getViews').then(d=>{
+        d.text().then(v=>{
+            document.getElementById('y5views').innerHTML=v;
         });
     });
     `;
@@ -394,9 +410,11 @@ async function getHtml(/*diffStats: Record<string, number>*/) {
     <p class='followers'><label id="followers" class="biggerNumber">0</label>&nbsp;followers</p>
     <p class="views"><label id="lviews" class="biggestNumber">0</label>&nbsp;views today&nbsp;<br><label id="estviews" class="smallestNumber">0</label>&nbsp;Estimated</p>
     <p class='views'><label id="unreadNotifications" class="bigNumber">0</label>&nbsp;unread notifcations</p>
-    <p class="tfollowers"><label id="yviews" class="smallestNumber">0</label>,&nbsp;
-    <label id="yyviews" class="smallestNumber">0</label>,&nbsp;
-    <label id="yyyviews" class="smallestNumber">0</label>&nbsp;views in last 3 days</p>
+    <p class="tfollowers"><label id="y1views" class="smallestNumber">0</label>,
+    <label id="y2views" class="smallestNumber">0</label>,
+    <label id="y3views" class="smallestNumber">0</label>,
+    <label id="y4views" class="smallestNumber">0</label>,
+    <label id="y5views" class="smallestNumber">0</label>&nbsp;views in last 5 days</p>
 
     <p class='tfollowers'><label class="smallerNumber">${twitterFollowers}</label>&nbsp;twitter followers of denoland</p>
     <script>
