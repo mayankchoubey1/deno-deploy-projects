@@ -3,9 +3,8 @@ import { serve } from "https://deno.land/std/http/server.ts";
 const authToken = Deno.env.get("AUTH_TOKEN") || "";
 const medAuthToken = Deno.env.get("MED_AUTH_TOKEN") || "";
 const rsp401 = new Response(null, { status: 401 });
-const rsp200 = new Response(null);
 const appStartupTS = new Date();
-const fontFamily = "Work Sans";
+const fontFamily = "Sora";
 let followers: number = 0, unreadNotifications: number = 0;
 //let stats: Record<string, any> = {};
 //stats = await getStats();
@@ -84,81 +83,7 @@ async function getFollowers() {
   return 0;
 }
 
-/*
-async function getStats(): Promise<Record<string, any>> {
-  const limit = "100", filter = "not-response";
-  const s: Record<string, any> = {};
-  let to;
-  while (1) {
-    const qs = new URLSearchParams({
-      limit,
-      filter,
-    });
-    if (to) {
-      qs.set("to", to);
-    }
-    const res = await fetch(
-      "https://medium.com/@choubey/stats?" + qs.toString(),
-      {
-        headers: {
-          "Accept": "application/json",
-          "Cookie": medAuthToken,
-        },
-      },
-    );
-    const resBody = await res.text();
-    let resJson;
-    try {
-      resJson = JSON.parse(resBody.split("</x>")[1]);
-    } catch (err) {
-      return s;
-    }
-    if (!resJson || !resJson.payload || !resJson.payload.value) {
-      return s;
-    }
-    for (const i of resJson.payload.value) {
-      s[i.title] = {
-        views: i.views,
-        reads: i.reads,
-        claps: i.claps,
-      };
-    }
-    for (const k in resJson.payload.references.Collection) {
-      followers =
-        resJson.payload.references.Collection[k].metadata.followerCount;
-    }
-    if (resJson.payload.paging.next) {
-      to = resJson.payload.paging.next.to;
-    } else {
-      break;
-    }
-  }
-  unreadNotifications = await getUnreadNotifications();
-  return s;
-}
-*/
 
-/*
-function sortData(data: Record<string, number>) {
-  return Object.entries(data)
-    .sort(([, a], [, b]) => b - a)
-    .reduce((r, [k, v]) => ({ ...r, [k]: v }), {});
-}
-*/
-
-/*
-function calculateDiff(newStats: Record<string, any>) {
-  const diffStats: Record<string, number> = {};
-  for (const s in newStats) {
-    const diff = newStats[s].views - stats[s].views || 0;
-    if (diff > 0) {
-      diffStats[s] = diff;
-    }
-  }
-  const sortedDiffStats: Record<string, number> = sortData(diffStats);
-  return sortedDiffStats;
-}
-*/
 
 function getLocalTime(d: Date) {
   return d.toLocaleString("en-US", { timeZone: "America/Los_Angeles" });
@@ -400,23 +325,28 @@ async function getHtml(/*diffStats: Record<string, number>*/) {
     <head>
     <meta name=”viewport” content=”width=device-width, initial-scale=1.0″>
     <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=${fontFamily}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer" />
     <style>
     ${getCSS()}
     </style>
     <script src="https://use.fontawesome.com/a3bd6a1ec7.js"></script>
     <body>
-    <p>Last updated: ${getLocalTime(new Date())}</p>
-    <p>App started at: ${getLocalTime(appStartupTS)}</p>
-    <p class='followers'><label id="followers" class="biggerNumber">0</label>&nbsp;followers</p>
-    <p class="views"><label id="lviews" class="biggestNumber">0</label>&nbsp;views today&nbsp;<br><label id="estviews" class="smallestNumber">0</label>&nbsp;Estimated</p>
-    <p class='views'><label id="unreadNotifications" class="bigNumber">0</label>&nbsp;unread notifcations</p>
-    <p class="tfollowers"><label id="y1views" class="smallestNumber">0</label>,
-    <label id="y2views" class="smallestNumber">0</label>,
-    <label id="y3views" class="smallestNumber">0</label>,
-    <label id="y4views" class="smallestNumber">0</label>,
-    <label id="y5views" class="smallestNumber">0</label>&nbsp;views in last 5 days</p>
-
-    <p class='tfollowers'><label class="smallerNumber">${twitterFollowers}</label>&nbsp;twitter followers of denoland</p>
+    <p><i class="fa-solid fa-4x fa-user-group">&nbsp;</i><label id="followers" class="followerNumber">0</label></p>
+    <br>
+    <p><i class="fa-solid fa-4x fa-eye">&nbsp;</i><label id="lviews" class="followerNumber">0</label></p>
+    <br>
+    <p><i class="fa-solid fa-4x fa-bars-progress">&nbsp;</i><label id="estviews" class="followerNumber">0</label></p>
+    <p><i class="fa-solid fa-4x fa-bell">&nbsp;</i><label id="unreadNotifications" class="followerNumber">0</label></p>
+    <br>
+    <p><i class="fa-brands fa-4x fa-twitter">&nbsp;</i><label class="smallestNumber">${twitterFollowers}</label></p>
+    <br>
+    <p><i class="fa-solid fa-4x fa-calendar-days"></i>&nbsp;
+    <label id="y1views" class="smallestNumber">0</label>,&nbsp;
+    <label id="y2views" class="smallestNumber">0</label>,&nbsp;
+    <label id="y3views" class="smallestNumber">0</label>,&nbsp;
+    <label id="y4views" class="smallestNumber">0</label>,&nbsp;
+    <label id="y5views" class="smallestNumber">0</label>&nbsp;</p>
+    <br>
     <script>
     ${getScriptToFetchViews()}
     </script>
@@ -429,6 +359,7 @@ async function getHtml(/*diffStats: Record<string, number>*/) {
     <script>
     ${getScriptToFetchUnreadNotifications()}
     </script>
+
     <p>Last 10 articles</p>
     ${getTable(await getLast10ArticleStats())}
     </body>
@@ -448,7 +379,15 @@ async function getHtml(/*diffStats: Record<string, number>*/) {
 }
 
 function getCSS(): string {
-  return `    
+  return `
+    .followerNumber {
+        font-family: ${fontFamily};
+        font-size: 5em;
+    }
+    .notificationsNumber {
+        font-family: ${fontFamily};
+        font-size: 3em;
+    }
     .followers {
         font-family: ${fontFamily};
         font-size: 5em;
@@ -483,7 +422,7 @@ function getCSS(): string {
     .smallestNumber{
         font-family: ${fontFamily};
         font-weight: bold;
-        font-size: 1.25em;
+        font-size: 2em;
     }
     .bigNumber{
         font-family: ${fontFamily};
@@ -536,6 +475,14 @@ function getCSS(): string {
     table.minimalistBlack tfoot td {
         font-size: 14px;
     }
+    .numberCell {
+        text-align: right,
+        width: 30%
+    }
+    .iconCell {
+        text-align: right,
+        width: 30%
+    }
     `;
 }
 
@@ -547,3 +494,80 @@ await serve(async (req: Request) => {
   }
   return new Response(null, { status: 500 });
 });
+
+
+/*
+async function getStats(): Promise<Record<string, any>> {
+  const limit = "100", filter = "not-response";
+  const s: Record<string, any> = {};
+  let to;
+  while (1) {
+    const qs = new URLSearchParams({
+      limit,
+      filter,
+    });
+    if (to) {
+      qs.set("to", to);
+    }
+    const res = await fetch(
+      "https://medium.com/@choubey/stats?" + qs.toString(),
+      {
+        headers: {
+          "Accept": "application/json",
+          "Cookie": medAuthToken,
+        },
+      },
+    );
+    const resBody = await res.text();
+    let resJson;
+    try {
+      resJson = JSON.parse(resBody.split("</x>")[1]);
+    } catch (err) {
+      return s;
+    }
+    if (!resJson || !resJson.payload || !resJson.payload.value) {
+      return s;
+    }
+    for (const i of resJson.payload.value) {
+      s[i.title] = {
+        views: i.views,
+        reads: i.reads,
+        claps: i.claps,
+      };
+    }
+    for (const k in resJson.payload.references.Collection) {
+      followers =
+        resJson.payload.references.Collection[k].metadata.followerCount;
+    }
+    if (resJson.payload.paging.next) {
+      to = resJson.payload.paging.next.to;
+    } else {
+      break;
+    }
+  }
+  unreadNotifications = await getUnreadNotifications();
+  return s;
+}
+*/
+
+/*
+function sortData(data: Record<string, number>) {
+  return Object.entries(data)
+    .sort(([, a], [, b]) => b - a)
+    .reduce((r, [k, v]) => ({ ...r, [k]: v }), {});
+}
+*/
+
+/*
+function calculateDiff(newStats: Record<string, any>) {
+  const diffStats: Record<string, number> = {};
+  for (const s in newStats) {
+    const diff = newStats[s].views - stats[s].views || 0;
+    if (diff > 0) {
+      diffStats[s] = diff;
+    }
+  }
+  const sortedDiffStats: Record<string, number> = sortData(diffStats);
+  return sortedDiffStats;
+}
+*/
