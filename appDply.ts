@@ -3,11 +3,10 @@ import { serve } from "https://deno.land/std/http/server.ts";
 const authToken = Deno.env.get("AUTH_TOKEN") || "";
 const medAuthToken = Deno.env.get("MED_AUTH_TOKEN") || "";
 const rsp401 = new Response(null, { status: 401 });
-const appStartupTS = new Date();
 const fontFamily = "Sora";
 let followers: number = 0, unreadNotifications: number = 0;
-//let stats: Record<string, any> = {};
-//stats = await getStats();
+let stats: Record<string, any> = {};
+stats = await getStats();
 const twitterFollowers = await getTwitterFollowers();
 
 async function getTwitterFollowers() {
@@ -38,15 +37,81 @@ async function handleRequest(req: Request): Promise<Response> {
   if (u.searchParams.has("getUnreadNotifications")) {
     return new Response(`${await getUnreadNotifications()}`);
   }
-  //const newStats = await getStats();
-  //const diffStats = calculateDiff(newStats);
-  //stats = newStats;
-  return new Response(await getHtml(/*diffStats*/), {
+  const newStats = await getStats();
+  const diffStats = calculateDiff(newStats);
+  stats = newStats;
+  return new Response(await getHtml(diffStats), {
     headers: {
       "content-type": "text/html",
       "cache-control": "no-cache; no-store; max-age=0",
     },
   });
+}
+
+async function getHtml(diffStats: Record<string, number>) {
+  let newViews = 0;
+  for (const k in diffStats) {
+    newViews += diffStats[k];
+  }
+  let ret = `<html>
+    <head>
+    <meta name=”viewport” content=”width=device-width, initial-scale=1.0″>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=${fontFamily}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <style>
+    ${getCSS()}
+    </style>
+    <script src="https://use.fontawesome.com/a3bd6a1ec7.js"></script>
+    <body>
+    <p><i class="fa-solid fa-4x fa-user-group">&nbsp;</i><label id="followers" class="followerNumber">0</label></p>
+    <br>
+    <p><i class="fa-solid fa-4x fa-eye">&nbsp;</i><label id="lviews" class="followerNumber">0</label></p>
+    <br>
+    <p><i class="fa-solid fa-4x fa-bars-progress">&nbsp;</i><label id="estviews" class="followerNumber">0</label></p>
+    <p><i class="fa-solid fa-4x fa-bell">&nbsp;</i><label id="unreadNotifications" class="followerNumber">0</label></p>
+    <br>
+    <p><i class="fa-brands fa-4x fa-twitter">&nbsp;</i><label class="smallestNumber">${twitterFollowers}</label></p>
+    <br>
+    <p><i class="fa-solid fa-4x fa-calendar-days"></i>&nbsp;
+    <label id="y1views" class="smallestNumber">0</label>,&nbsp;
+    <label id="y2views" class="smallestNumber">0</label>,&nbsp;
+    <label id="y3views" class="smallestNumber">0</label>,&nbsp;
+    <label id="y4views" class="smallestNumber">0</label>,&nbsp;
+    <label id="y5views" class="smallestNumber">0</label>&nbsp;</p>
+    <br>
+    <script>
+    ${getScriptToFetchViews()}
+    </script>
+    <script>
+    ${getScriptToFetchPastViews()}
+    </script>
+    <script>
+    ${getScriptToFetchFollowers()}
+    </script>
+    <script>
+    ${getScriptToFetchUnreadNotifications()}
+    </script>
+    <p class='views'><label class="bigNumber">${newViews}</label>&nbsp;new views</p>
+    ${getTableDiff(diffStats)}
+    <p>Total articles: ${
+    Object.keys(stats).length
+    }, Total views: ${getTotalViews()}</p>
+    <p class="allArticles">Last 10 articles</p>
+    ${getTable(await getLast10ArticleStats())}
+    </body>
+    </html>`;
+
+  /*
+    <p class='views'><label class="bigNumber">${newViews}</label>&nbsp;new views</p>
+    ${getTableDiff(diffStats)}
+    <p class="allArticles">Detailed stats</p>
+    <p>Total articles: ${
+    Object.keys(stats).length
+  }, Total views: ${getTotalViews()}</p>
+    ${getTable(stats)}
+    </body>
+    </html>`;*/
+  return ret;
 }
 
 async function getFollowers() {
@@ -223,16 +288,6 @@ function getScriptToFetchUnreadNotifications() {
       });`;
 }
 
-function getScriptToResetStats() {
-  return `
-    function resetStats() {
-        fetch(window.location+'&reset').then(d=>{
-            window.location.reload();
-        });
-    }
-    `;
-}
-
 function getTable(d: Record<string, any>, n: number = -1) {
   let ret = '<table class="minimalistBlack">', count = 0;
   for (const k in d) {
@@ -304,78 +359,12 @@ async function getLast10ArticleStats(): Promise<Record<string, any>> {
   return s;
 }
 
-/*
 function getTotalViews() {
   let views = 0;
   for (const k in stats) {
     views += stats[k].views;
   }
   return views;
-}
-*/
-
-async function getHtml(/*diffStats: Record<string, number>*/) {
-  let newViews = 0;
-  /*
-  for (const k in diffStats) {
-    newViews += diffStats[k];
-  }
-  */
-  let ret = `<html>
-    <head>
-    <meta name=”viewport” content=”width=device-width, initial-scale=1.0″>
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=${fontFamily}">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer" />
-    <style>
-    ${getCSS()}
-    </style>
-    <script src="https://use.fontawesome.com/a3bd6a1ec7.js"></script>
-    <body>
-    <p><i class="fa-solid fa-4x fa-user-group">&nbsp;</i><label id="followers" class="followerNumber">0</label></p>
-    <br>
-    <p><i class="fa-solid fa-4x fa-eye">&nbsp;</i><label id="lviews" class="followerNumber">0</label></p>
-    <br>
-    <p><i class="fa-solid fa-4x fa-bars-progress">&nbsp;</i><label id="estviews" class="followerNumber">0</label></p>
-    <p><i class="fa-solid fa-4x fa-bell">&nbsp;</i><label id="unreadNotifications" class="followerNumber">0</label></p>
-    <br>
-    <p><i class="fa-brands fa-4x fa-twitter">&nbsp;</i><label class="smallestNumber">${twitterFollowers}</label></p>
-    <br>
-    <p><i class="fa-solid fa-4x fa-calendar-days"></i>&nbsp;
-    <label id="y1views" class="smallestNumber">0</label>,&nbsp;
-    <label id="y2views" class="smallestNumber">0</label>,&nbsp;
-    <label id="y3views" class="smallestNumber">0</label>,&nbsp;
-    <label id="y4views" class="smallestNumber">0</label>,&nbsp;
-    <label id="y5views" class="smallestNumber">0</label>&nbsp;</p>
-    <br>
-    <script>
-    ${getScriptToFetchViews()}
-    </script>
-    <script>
-    ${getScriptToFetchPastViews()}
-    </script>
-    <script>
-    ${getScriptToFetchFollowers()}
-    </script>
-    <script>
-    ${getScriptToFetchUnreadNotifications()}
-    </script>
-
-    <p>Last 10 articles</p>
-    ${getTable(await getLast10ArticleStats())}
-    </body>
-    </html>`;
-
-  /*
-    <p class='views'><label class="bigNumber">${newViews}</label>&nbsp;new views</p>
-    ${getTableDiff(diffStats)}
-    <p class="allArticles">Detailed stats</p>
-    <p>Total articles: ${
-    Object.keys(stats).length
-  }, Total views: ${getTotalViews()}</p>
-    ${getTable(stats)}
-    </body>
-    </html>`;*/
-  return ret;
 }
 
 function getCSS(): string {
@@ -496,7 +485,6 @@ await serve(async (req: Request) => {
 });
 
 
-/*
 async function getStats(): Promise<Record<string, any>> {
   const limit = "100", filter = "not-response";
   const s: Record<string, any> = {};
@@ -548,17 +536,13 @@ async function getStats(): Promise<Record<string, any>> {
   unreadNotifications = await getUnreadNotifications();
   return s;
 }
-*/
 
-/*
 function sortData(data: Record<string, number>) {
   return Object.entries(data)
     .sort(([, a], [, b]) => b - a)
     .reduce((r, [k, v]) => ({ ...r, [k]: v }), {});
 }
-*/
 
-/*
 function calculateDiff(newStats: Record<string, any>) {
   const diffStats: Record<string, number> = {};
   for (const s in newStats) {
@@ -570,4 +554,3 @@ function calculateDiff(newStats: Record<string, any>) {
   const sortedDiffStats: Record<string, number> = sortData(diffStats);
   return sortedDiffStats;
 }
-*/
