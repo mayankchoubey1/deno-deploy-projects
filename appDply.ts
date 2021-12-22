@@ -96,8 +96,8 @@ async function getHtml(diffStats: Record<string, number>) {
     <p>Total articles: ${
     Object.keys(stats).length
     }, Total views: ${getTotalViews()}</p>
-    <p class="allArticles">Last 10 articles</p>
-    ${getTable(await getLast10ArticleStats())}
+    <p class="allArticles">Last 50 articles</p>
+    ${getTable(stats, 50)}
     </body>
     </html>`;
 
