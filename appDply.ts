@@ -70,15 +70,18 @@ async function getHtml(diffStats: Record<string, number>) {
     <p><i class="fa-solid fa-4x fa-bars-progress">&nbsp;</i><label id="estviews" class="followerNumber">0</label></p>
     <p><i class="fa-solid fa-4x fa-bell">&nbsp;</i><label id="unreadNotifications" class="followerNumber">0</label></p>
     <br>
-    <p><i class="fa-brands fa-4x fa-twitter">&nbsp;</i><label class="smallestNumber">${twitterFollowers}</label></p>
+    <p><i class="fa-brands fa-2x fa-twitter">&nbsp;</i><label class="smallestNumber">${twitterFollowers}</label></p>
     <br>
-    <p><i class="fa-solid fa-4x fa-calendar-days"></i>&nbsp;
+    <p><i class="fa-solid fa-2x fa-calendar-days"></i>&nbsp;
     <label id="y1views" class="smallestNumber">0</label>,&nbsp;
     <label id="y2views" class="smallestNumber">0</label>,&nbsp;
     <label id="y3views" class="smallestNumber">0</label>,&nbsp;
     <label id="y4views" class="smallestNumber">0</label>,&nbsp;
     <label id="y5views" class="smallestNumber">0</label>&nbsp;</p>
     <br>
+    <p><i class="fas fa-list fa-2x">&nbsp;</i><label class="smallestNumber">${Object.keys(stats).length}</label></p>
+    <br>
+    <p><i class="fas fa-binoculars fa-2x">&nbsp;</i><label class="smallestNumber">${getTotalViews()}</label></p>
     <script>
     ${getScriptToFetchViews()}
     </script>
@@ -93,7 +96,7 @@ async function getHtml(diffStats: Record<string, number>) {
     </script>
     <p class='views'><label class="bigNumber">${newViews}</label>&nbsp;new views</p>
     ${getTableDiff(diffStats)}
-    <p>Total articles: ${
+    <p class="views">Total articles: ${
     Object.keys(stats).length
     }, Total views: ${getTotalViews()}</p>
     <p class="allArticles">Last 50 articles</p>
