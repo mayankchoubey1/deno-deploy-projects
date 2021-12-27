@@ -96,8 +96,8 @@ async function getHtml(diffStats: Record<string, number>) {
     </script>
     <p class='views'><label class="bigNumber">${newViews}</label>&nbsp;new views</p>
     ${getTableDiff(diffStats)}
-    <p class="allArticles">Last 50 articles</p>
-    ${getTable(stats, 50)}
+    <p class="allArticles">All articles</p>
+    ${getTable(stats, 200)}
     </body>
     </html>`;
 
