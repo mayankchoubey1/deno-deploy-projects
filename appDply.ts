@@ -545,6 +545,8 @@ function sortData(data: Record<string, number>) {
 
 function calculateDiff(newStats: Record<string, any>) {
   const diffStats: Record<string, number> = {};
+  if(!Object.keys(stats).length)
+    return diffStats;
   for (const s in newStats) {
     const diff = newStats[s].views - stats[s].views || 0;
     if (diff > 0) {
