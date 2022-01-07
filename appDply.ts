@@ -7,6 +7,9 @@ const fontFamily = "Sora";
 let followers: number = 0, unreadNotifications: number = 0;
 let stats: Record<string, any> = {};
 stats = await getStats();
+let startupStats: Record<string, any> = {};
+startupStats = JSON.parse(JSON.stringify(stats));
+const startupTS = Date.now();
 const twitterFollowers = await getTwitterFollowers();
 
 async function getTwitterFollowers() {
@@ -38,9 +41,10 @@ async function handleRequest(req: Request): Promise<Response> {
     return new Response(`${await getUnreadNotifications()}`);
   }
   const newStats = await getStats();
-  const diffStats = calculateDiff(newStats);
+  const diffStats = calculateDiff(newStats, stats);
+  const diffStatsStartup = calculateDiff(newStats, startupStats);
   stats = newStats;
-  return new Response(await getHtml(diffStats), {
+  return new Response(await getHtml(diffStats, diffStatsStartup), {
     headers: {
       "content-type": "text/html",
       "cache-control": "no-cache; no-store; max-age=0",
@@ -48,11 +52,19 @@ async function handleRequest(req: Request): Promise<Response> {
   });
 }
 
-async function getHtml(diffStats: Record<string, number>) {
+async function getHtml(diffStats: Record<string, number>, diffStatsStartup: Record<string, number>) {
   let newViews = 0;
   for (const k in diffStats) {
     newViews += diffStats[k];
   }
+
+  let newViewsSinceStartup = 0;
+  for (const k in diffStatsStartup) {
+    newViewsSinceStartup += diffStatsStartup[k];
+  }
+
+  const elapsedMinsSinceStartup = Math.round(Number(((Date.now() - startupTS)/1000)/60));
+
   let ret = `<html>
     <head>
     <meta name=”viewport” content=”width=device-width, initial-scale=1.0″>
@@ -79,7 +91,9 @@ async function getHtml(diffStats: Record<string, number>) {
     <label id="y4views" class="smallestNumber">0</label>,&nbsp;
     <label id="y5views" class="smallestNumber">0</label>&nbsp;</p>
     <br>
-    <p><i class="fas fa-list fa-2x">&nbsp;</i><label class="smallestNumber">${Object.keys(stats).length}</label></p>
+    <p><i class="fas fa-list fa-2x">&nbsp;</i><label class="smallestNumber">${
+    Object.keys(stats).length
+  }</label></p>
     <br>
     <p><i class="fas fa-binoculars fa-2x">&nbsp;</i><label class="smallestNumber">${getTotalViews()}</label></p>
     <script>
@@ -94,10 +108,12 @@ async function getHtml(diffStats: Record<string, number>) {
     <script>
     ${getScriptToFetchUnreadNotifications()}
     </script>
-    <p class='views'><label class="bigNumber">${newViews}</label>&nbsp;new views</p>
+    <p class='views'><label class="bigNumber">${newViews}</label>&nbsp;new views since last refresh</p>
     ${getTableDiff(diffStats)}
+    <p class='views'><label class="bigNumber">${newViewsSinceStartup}</label>&nbsp;new views since last restart ${elapsedMinsSinceStartup} minutes back</p>
+    ${getTableDiff(diffStatsStartup)}
     <p class="allArticles">All articles</p>
-    ${getTable(stats, 200)}
+    ${getTable(stats, 25)}
     </body>
     </html>`;
 
@@ -147,8 +163,6 @@ async function getFollowers() {
   }
   return 0;
 }
-
-
 
 function getLocalTime(d: Date) {
   return d.toLocaleString("en-US", { timeZone: "America/Los_Angeles" });
@@ -367,114 +381,6 @@ function getTotalViews() {
   return views;
 }
 
-function getCSS(): string {
-  return `
-    .followerNumber {
-        font-family: ${fontFamily};
-        font-size: 5em;
-    }
-    .notificationsNumber {
-        font-family: ${fontFamily};
-        font-size: 3em;
-    }
-    .followers {
-        font-family: ${fontFamily};
-        font-size: 5em;
-    }
-    .tfollowers {
-        font-family: ${fontFamily};
-        font-size: 2em;
-    }
-    p {
-        font-family: ${fontFamily};
-        font-size: 1.5em;
-    }
-    .views{
-        font-family: ${fontFamily};
-        font-size: 4em;
-    }
-    .newViews{
-        font-family: ${fontFamily};
-        font-weight: bold;
-        font-size: 4em;
-    }
-    .allArticles{
-        font-family: ${fontFamily};
-        font-weight: bold;
-        font-size: 4em;
-    }
-    .smallerNumber{
-        font-family: ${fontFamily};
-        font-weight: bold;
-        font-size: 1.5em;
-    }
-    .smallestNumber{
-        font-family: ${fontFamily};
-        font-weight: bold;
-        font-size: 2em;
-    }
-    .bigNumber{
-        font-family: ${fontFamily};
-        font-weight: bold;
-        font-size: 1.25em;
-    }
-    .biggerNumber{
-        font-family: ${fontFamily};
-        font-weight: bold;
-        font-size: 1.5em;
-    }
-    .biggestNumber{
-        font-family: ${fontFamily};
-        font-weight: bold;
-        font-size: 2em;
-    }
-    table.minimalistBlack {
-        border: 3px solid #000000;
-        width: 75%;
-        text-align: left;
-        border-collapse: collapse;
-    }
-    table.minimalistBlack td, table.minimalistBlack th {
-        border: 1px solid #000000;
-        padding: 5px 4px;
-    }
-    table.minimalistBlack tbody td {
-        font-family: ${fontFamily};
-        font-size: 3em;
-    }
-    table.minimalistBlack thead {
-        background: #CFCFCF;
-        background: -moz-linear-gradient(top, #dbdbdb 0%, #d3d3d3 66%, #CFCFCF 100%);
-        background: -webkit-linear-gradient(top, #dbdbdb 0%, #d3d3d3 66%, #CFCFCF 100%);
-        background: linear-gradient(to bottom, #dbdbdb 0%, #d3d3d3 66%, #CFCFCF 100%);
-        border-bottom: 3px solid #000000;
-    }
-    table.minimalistBlack thead th {
-        font-size: 15px;
-        font-weight: bold;
-        color: #000000;
-        text-align: left;
-    }
-    table.minimalistBlack tfoot {
-        font-size: 14px;
-        font-weight: bold;
-        color: #000000;
-        border-top: 3px solid #000000;
-    }
-    table.minimalistBlack tfoot td {
-        font-size: 14px;
-    }
-    .numberCell {
-        text-align: right,
-        width: 30%
-    }
-    .iconCell {
-        text-align: right,
-        width: 30%
-    }
-    `;
-}
-
 await serve(async (req: Request) => {
   try {
     return await handleRequest(req);
@@ -483,7 +389,6 @@ await serve(async (req: Request) => {
   }
   return new Response(null, { status: 500 });
 });
-
 
 async function getStats(): Promise<Record<string, any>> {
   const limit = "100", filter = "not-response";
@@ -543,16 +448,132 @@ function sortData(data: Record<string, number>) {
     .reduce((r, [k, v]) => ({ ...r, [k]: v }), {});
 }
 
-function calculateDiff(newStats: Record<string, any>) {
+function calculateDiff(
+  newStats: Record<string, any>,
+  stats: Record<string, any>,
+) {
   const diffStats: Record<string, number> = {};
-  if(!Object.keys(stats).length)
+  if (!Object.keys(stats).length) {
     return diffStats;
+  }
   for (const s in newStats) {
-    const diff = newStats[s].views - stats[s].views || 0;
-    if (diff > 0) {
-      diffStats[s] = diff;
+    if (!stats[s]) {
+      diffStats[s] = newStats[s].views;
+    } else {
+      const diff = newStats[s].views - stats[s].views || 0;
+      if (diff > 0) {
+        diffStats[s] = diff;
+      }
     }
   }
   const sortedDiffStats: Record<string, number> = sortData(diffStats);
   return sortedDiffStats;
+}
+
+function getCSS(): string {
+  return `
+      .followerNumber {
+          font-family: ${fontFamily};
+          font-size: 5em;
+      }
+      .notificationsNumber {
+          font-family: ${fontFamily};
+          font-size: 3em;
+      }
+      .followers {
+          font-family: ${fontFamily};
+          font-size: 5em;
+      }
+      .tfollowers {
+          font-family: ${fontFamily};
+          font-size: 2em;
+      }
+      p {
+          font-family: ${fontFamily};
+          font-size: 1.5em;
+      }
+      .views{
+          font-family: ${fontFamily};
+          font-size: 4em;
+      }
+      .newViews{
+          font-family: ${fontFamily};
+          font-weight: bold;
+          font-size: 4em;
+      }
+      .allArticles{
+          font-family: ${fontFamily};
+          font-weight: bold;
+          font-size: 4em;
+      }
+      .smallerNumber{
+          font-family: ${fontFamily};
+          font-weight: bold;
+          font-size: 1.5em;
+      }
+      .smallestNumber{
+          font-family: ${fontFamily};
+          font-weight: bold;
+          font-size: 2em;
+      }
+      .bigNumber{
+          font-family: ${fontFamily};
+          font-weight: bold;
+          font-size: 1.25em;
+      }
+      .biggerNumber{
+          font-family: ${fontFamily};
+          font-weight: bold;
+          font-size: 1.5em;
+      }
+      .biggestNumber{
+          font-family: ${fontFamily};
+          font-weight: bold;
+          font-size: 2em;
+      }
+      table.minimalistBlack {
+          border: 3px solid #000000;
+          width: 75%;
+          text-align: left;
+          border-collapse: collapse;
+      }
+      table.minimalistBlack td, table.minimalistBlack th {
+          border: 1px solid #000000;
+          padding: 5px 4px;
+      }
+      table.minimalistBlack tbody td {
+          font-family: ${fontFamily};
+          font-size: 3em;
+      }
+      table.minimalistBlack thead {
+          background: #CFCFCF;
+          background: -moz-linear-gradient(top, #dbdbdb 0%, #d3d3d3 66%, #CFCFCF 100%);
+          background: -webkit-linear-gradient(top, #dbdbdb 0%, #d3d3d3 66%, #CFCFCF 100%);
+          background: linear-gradient(to bottom, #dbdbdb 0%, #d3d3d3 66%, #CFCFCF 100%);
+          border-bottom: 3px solid #000000;
+      }
+      table.minimalistBlack thead th {
+          font-size: 15px;
+          font-weight: bold;
+          color: #000000;
+          text-align: left;
+      }
+      table.minimalistBlack tfoot {
+          font-size: 14px;
+          font-weight: bold;
+          color: #000000;
+          border-top: 3px solid #000000;
+      }
+      table.minimalistBlack tfoot td {
+          font-size: 14px;
+      }
+      .numberCell {
+          text-align: right,
+          width: 30%
+      }
+      .iconCell {
+          text-align: right,
+          width: 30%
+      }
+      `;
 }
