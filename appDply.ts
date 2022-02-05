@@ -52,7 +52,10 @@ async function handleRequest(req: Request): Promise<Response> {
   });
 }
 
-async function getHtml(diffStats: Record<string, number>, diffStatsStartup: Record<string, number>) {
+async function getHtml(
+  diffStats: Record<string, number>,
+  diffStatsStartup: Record<string, number>,
+) {
   let newViews = 0;
   for (const k in diffStats) {
     newViews += diffStats[k];
@@ -63,7 +66,9 @@ async function getHtml(diffStats: Record<string, number>, diffStatsStartup: Reco
     newViewsSinceStartup += diffStatsStartup[k];
   }
 
-  const elapsedMinsSinceStartup = Math.round(Number(((Date.now() - startupTS)/1000)/60));
+  const elapsedMinsSinceStartup = Math.round(
+    Number(((Date.now() - startupTS) / 1000) / 60),
+  );
 
   let ret = `<html>
     <head>
@@ -108,9 +113,11 @@ async function getHtml(diffStats: Record<string, number>, diffStatsStartup: Reco
     <script>
     ${getScriptToFetchUnreadNotifications()}
     </script>
-    <p class='views'><label class="bigNumber">${newViews}</label>&nbsp;new views since last refresh</p>
+    <p class='views'><label class="bigNumber">
+    ${newViews}</label>&nbsp;new views since last refresh</p>
     ${getTableDiff(diffStats)}
-    <p class='views'><label class="bigNumber">${newViewsSinceStartup}</label>&nbsp;new views since last restart ${elapsedMinsSinceStartup} minutes back</p>
+    <p class='views'><label class="bigNumber">
+    ${newViewsSinceStartup}</label>&nbsp;new views since last restart ${elapsedMinsSinceStartup} minutes back</p>
     ${getTableDiff(diffStatsStartup)}
     <p class="allArticles">All articles</p>
     ${getTable(stats, 25)}
@@ -327,6 +334,7 @@ function getTableDiff(d: Record<string, number>) {
     ret += `<tr>
         <td>${k}</td>
         <td>${d[k]}</td>
+        <td>${stats[k].views}</td>
         </tr>`;
   }
   ret += "</table>";
