@@ -80,12 +80,12 @@ async function getHtml(
     </style>
     <script src="https://use.fontawesome.com/a3bd6a1ec7.js"></script>
     <body>
+    <p><i class="fa-solid fa-4x fa-eye">&nbsp;</i><label id="lviews" class="todayViews">0</label>
+    &nbsp;<label id="estviews" class="notificationsNumber">(0)</label></p>
+    <br>
     <p><i class="fa-solid fa-4x fa-user-group">&nbsp;</i><label id="followers" class="followerNumber">0</label></p>
     <br>
-    <p><i class="fa-solid fa-4x fa-eye">&nbsp;</i><label id="lviews" class="followerNumber">0</label></p>
-    <br>
-    <p><i class="fa-solid fa-4x fa-bars-progress">&nbsp;</i><label id="estviews" class="followerNumber">0</label></p>
-    <p><i class="fa-solid fa-4x fa-bell">&nbsp;</i><label id="unreadNotifications" class="followerNumber">0</label></p>
+    <p><i class="fa-solid fa-3x fa-bell">&nbsp;</i><label id="unreadNotifications" class="notificationsNumber">0</label></p>
     <br>
     <p><i class="fa-brands fa-2x fa-twitter">&nbsp;</i><label class="smallestNumber">${twitterFollowers}</label></p>
     <br>
@@ -116,11 +116,6 @@ async function getHtml(
     <p class='views'><label class="bigNumber">
     ${newViews}</label>&nbsp;new views since last refresh</p>
     ${getTableDiff(diffStats)}
-    <p class='views'><label class="bigNumber">
-    ${newViewsSinceStartup}</label>&nbsp;new views since last restart ${elapsedMinsSinceStartup} minutes back</p>
-    ${getTableDiff(diffStatsStartup)}
-    <p class="allArticles">All articles</p>
-    ${getTable(stats, 25)}
     </body>
     </html>`;
 
@@ -229,7 +224,7 @@ function getScriptToFetchViews() {
     d.setHours(0, 0, 0, 0);
     const prevTS=d.valueOf();
     document.getElementById('lviews').innerHTML="0";
-    document.getElementById('estviews').innerHTML="0";
+    document.getElementById('estviews').innerHTML="(0)";
     fetch(window.location+'&prevTS='+prevTS+'&currTS='+Date.now()+'&getViews').then(d=>{
         d.text().then(v=>{
             document.getElementById('lviews').innerHTML=v;
@@ -237,7 +232,7 @@ function getScriptToFetchViews() {
             const m=Math.floor((j - i.setHours(0,0,0,0))/1000/60);
             const vs=Number(v);
             const r=1440-m;
-            document.getElementById('estviews').innerHTML=Math.floor((v/m)*r+vs);
+            document.getElementById('estviews').innerHTML="("+Math.floor((v/m)*r+vs)+")";
         });
     });`;
 }
@@ -331,10 +326,13 @@ function getTable(d: Record<string, any>, n: number = -1) {
 function getTableDiff(d: Record<string, number>) {
   let ret = '<table class="minimalistBlack">', count = 0;
   for (const k in d) {
+    const v: number = stats[k].views,
+      r: number = stats[k].reads,
+      c: number = stats[k].claps;
     ret += `<tr>
         <td>${k}</td>
         <td>${d[k]}</td>
-        <td>${stats[k].views}</td>
+        <td><label class="smallerNumber">${v}</label>,${r},${c}</td>
         </tr>`;
   }
   ret += "</table>";
@@ -480,9 +478,13 @@ function calculateDiff(
 
 function getCSS(): string {
   return `
+    .todayViews {
+        font-family: ${fontFamily};
+        font-size: 6em;
+    }
       .followerNumber {
           font-family: ${fontFamily};
-          font-size: 5em;
+          font-size: 4.5em;
       }
       .notificationsNumber {
           font-family: ${fontFamily};
@@ -541,7 +543,7 @@ function getCSS(): string {
       }
       table.minimalistBlack {
           border: 3px solid #000000;
-          width: 75%;
+          width: 100%;
           text-align: left;
           border-collapse: collapse;
       }
