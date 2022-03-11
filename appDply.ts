@@ -16,8 +16,11 @@ async function getTwitterFollowers() {
   const res = await fetch(
     "https://cdn.syndication.twimg.com/widgets/followbutton/info.json?screen_names=deno_land",
   );
-  const resJson = await res.json();
-  return resJson[0]["followers_count"];
+  if(res.status === 200) {
+    const resJson = await res.json();
+    return resJson[0]["followers_count"];
+  }
+  return 0;
 }
 
 async function handleRequest(req: Request): Promise<Response> {
