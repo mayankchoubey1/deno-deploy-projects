@@ -119,6 +119,8 @@ async function getHtml(
     <p class='views'><label class="bigNumber">
     ${newViews}</label>&nbsp;new views since last refresh</p>
     ${getTableDiff(diffStats)}
+    <p class='views'>Stats of last 10 articles</p>
+    ${getTable(stats, 10)}
     </body>
     </html>`;
 
