@@ -195,7 +195,6 @@ async function getTodayViews(
   try {
     resJson = JSON.parse(resBody.split("</x>")[1]);
   } catch(e) {
-    console.log("JSON parsing failed", resBody);
     return "0";
   }
   if (!resJson || !resJson.payload || !resJson.payload.value) {
