@@ -191,7 +191,13 @@ async function getTodayViews(
     },
   });
   const resBody = await res.text();
-  const resJson = JSON.parse(resBody.split("</x>")[1]);
+  let resJson;
+  try {
+    resJson = JSON.parse(resBody.split("</x>")[1]);
+  } catch(e) {
+    console.error("JSON parsing failed", resBody);
+    return "0";
+  }
   if (!resJson || !resJson.payload || !resJson.payload.value) {
     return "0";
   }
